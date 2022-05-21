@@ -315,7 +315,7 @@ pydantic[email]==1.8.2
     #   datamodel-code-generator
 pygments==2.10.0
     # via ipython
-pyjwt==2.1.0
+pyjwt==2.4.0
     # via -r requirements.in
 pylint==2.10.2
     # via -r requirements.in
