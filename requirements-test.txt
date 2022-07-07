@@ -940,7 +940,7 @@ typing-extensions==3.10.0.2
     #   black
     #   mypy
     #   pydantic
-ujson==4.1.0
+ujson==5.4.0
     # via
     #   -c requirements.txt
     #   -r requirements.txt
