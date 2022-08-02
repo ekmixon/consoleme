@@ -36,10 +36,7 @@ class GetRolesHandler(BaseMtlsHandler):
         self.user: str = self.requester["email"]
 
         include_all_roles = self.get_arguments("all")
-        console_only = True
-        if include_all_roles == ["true"]:
-            console_only = False
-
+        console_only = include_all_roles != ["true"]
         log_data = {
             "function": "GetRolesHandler.get",
             "user": self.user,

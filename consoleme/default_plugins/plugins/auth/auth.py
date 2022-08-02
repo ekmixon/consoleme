@@ -48,9 +48,7 @@ class Group(object):
 
     @staticmethod
     def convert_to_list(kwargs, kwarg):
-        if kwargs.get(kwarg):
-            return kwargs[kwarg].split(",")
-        return []
+        return kwargs[kwarg].split(",") if kwargs.get(kwarg) else []
 
     @staticmethod
     def is_group_automated(description):
@@ -142,10 +140,10 @@ class Auth:
                 "auth.user_header_name configuration not set, but auth.get_user_by_header is enabled."
             )
 
-        user = headers.get(user_header_name)
-        if not user:
-            raise NoUserException("User header '{}' is empty.".format(user_header_name))
-        return user
+        if user := headers.get(user_header_name):
+            return user
+        else:
+            raise NoUserException(f"User header '{user_header_name}' is empty.")
 
     async def get_groups(
         self, user: str, headers=None, get_header_groups=False, only_direct=True
@@ -228,11 +226,7 @@ class Auth:
             for k, v in header.items():
                 if headers.get(k) != v:
                     stats.count("auth.validate_certificate.error")
-                    error = (
-                        "Header {} is supposed to equal {}, but it equals {}.".format(
-                            k, v, headers.get(k)
-                        )
-                    )
+                    error = f"Header {k} is supposed to equal {v}, but it equals {headers.get(k)}."
                     log_data = {
                         "function": "auth.validate_certificate",
                         "message": error,
@@ -333,10 +327,11 @@ class Auth:
 
     async def get_or_create_user_role_name(self, user):
         user_role_name_attribute = await self.get_user_attribute(user, "user_role_name")
-        if not user_role_name_attribute:
-            return await self.generate_and_store_user_role_name(user)
-        user_role_name = user_role_name_attribute.value
-        return user_role_name
+        return (
+            user_role_name_attribute.value
+            if user_role_name_attribute
+            else await self.generate_and_store_user_role_name(user)
+        )
 
     async def generate_and_store_user_role_name(self, user):
         (username, domain) = user.split("@")

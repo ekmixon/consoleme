@@ -34,22 +34,20 @@ async def update_role(event):
                     i["policy_document"], escape_forward_slashes=False
                 )
 
-        if d.get("assume_role_policy_document", {}):
-            if isinstance(
-                d.get("assume_role_policy_document", {}).get(
-                    "assume_role_policy_document"
-                ),
-                dict,
-            ):
-                d["assume_role_policy_document"][
-                    "assume_role_policy_document"
-                ] = json.dumps(
-                    d["assume_role_policy_document"]["assume_role_policy_document"],
-                    escape_forward_slashes=False,
-                )
+        if d.get("assume_role_policy_document", {}) and isinstance(
+            d.get("assume_role_policy_document", {}).get(
+                "assume_role_policy_document"
+            ),
+            dict,
+        ):
+            d["assume_role_policy_document"][
+                "assume_role_policy_document"
+            ] = json.dumps(
+                d["assume_role_policy_document"]["assume_role_policy_document"],
+                escape_forward_slashes=False,
+            )
 
-    bad_validation = RoleUpdaterRequest().validate(event, many=True)
-    if bad_validation:
+    if bad_validation := RoleUpdaterRequest().validate(event, many=True):
         log_data["error"] = bad_validation
         log.error(log_data)
         return {"error_msg": "invalid schema passed", "detail_error": bad_validation}
@@ -158,13 +156,14 @@ async def update_assume_role_document(client, role_name, assume_role_doc):
             "assume_role_doc": assume_role_doc,
         }
     )
-    response = None
-    if assume_role_doc.get("action", "") in ["create", "update"]:
-        response = await sync_to_async(client.update_assume_role_policy)(
+    return (
+        await sync_to_async(client.update_assume_role_policy)(
             RoleName=role_name,
             PolicyDocument=assume_role_doc["assume_role_policy_document"],
         )
-    return response
+        if assume_role_doc.get("action", "") in ["create", "update"]
+        else None
+    )
     # Log or report result?
 
 

@@ -81,5 +81,5 @@ class ConsolemeEcsServiceStack(cdk.Stack):
         cdk.CfnOutput(
             self,
             f"{BASE_NAME}URL",
-            value="https://" + domain_stack.route53_record.domain_name,
+            value=f"https://{domain_stack.route53_record.domain_name}",
         )

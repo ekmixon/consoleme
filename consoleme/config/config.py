@@ -38,10 +38,8 @@ def dict_merge(dct: dict, merge_dct: dict):
             and isinstance(merge_dct[k], collections.Mapping)
         ):
             dict_merge(dct[k], merge_dct[k])
-        else:
-            # Prefer original dict values over merged dict values if they already exist
-            if k not in dct.keys():
-                dct[k] = merge_dct[k]
+        elif k not in dct.keys():
+            dct[k] = merge_dct[k]
     return dct
 
 
@@ -282,16 +280,14 @@ class Configuration(object):
         if not name:
             name = self.get("application_name", "consoleme")
         level_c = self.get("logging.level", "debug")
-        if level_c == "info":
-            level = logging.INFO
-        elif level_c == "critical":
+        if level_c == "critical":
             level = logging.CRITICAL
         elif level_c == "error":
             level = logging.ERROR
+        elif level_c == "info":
+            level = logging.INFO
         elif level_c == "warning":
             level = logging.WARNING
-        elif level_c == "debug":
-            level = logging.DEBUG
         else:
             # default
             level = logging.DEBUG
@@ -342,8 +338,7 @@ class Configuration(object):
             )
             handler.setLevel(self.get("logging.stdout.level", "DEBUG"))
             logger.addHandler(handler)
-            logging_file = self.get("logging.file")
-            if logging_file:
+            if logging_file := self.get("logging.file"):
                 if "~" in logging_file:
                     logging_file = os.path.expanduser(logging_file)
                 os.makedirs(os.path.dirname(logging_file), exist_ok=True)

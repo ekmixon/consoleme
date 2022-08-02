@@ -30,8 +30,9 @@ class ChallengeGeneratorHandler(TornadoRequestHandler):
     """
 
     def get_request_ip(self):
-        trusted_remote_ip_header = config.get("auth.remote_ip.trusted_remote_ip_header")
-        if trusted_remote_ip_header:
+        if trusted_remote_ip_header := config.get(
+            "auth.remote_ip.trusted_remote_ip_header"
+        ):
             return self.request.headers[trusted_remote_ip_header].split(",")[0]
         return self.request.remote_ip
 
@@ -135,28 +136,27 @@ class ChallengeValidatorHandler(BaseHandler):
         # need to be explicitly set to False.
         if config.get(
             "challenge_url.request_ip_must_match_challenge_creation_ip", True
-        ):
-            if request_ip != valid_user_challenge.get("ip"):
-                log.error(
-                    {
-                        **log_data,
-                        "request_ip": request_ip,
-                        "challenge_ip": valid_user_challenge.get("ip"),
-                        "message": "Request IP doesn't match challenge IP",
-                    }
-                )
-                self.write(
-                    {
-                        "message": (
-                            "Your originating IP doesn't match the IP the challenge was created with. "
-                            "If you are developing locally, this is probably because your CLI (Weep) made an IPv6 "
-                            "request, and your web browser made an IPv4 request. Or visa-versa. If this is the case, "
-                            "set the local configuration for "
-                            "**challenge_url.request_ip_must_match_challenge_creation_ip** to **false**."
-                        )
-                    }
-                )
-                return
+        ) and request_ip != valid_user_challenge.get("ip"):
+            log.error(
+                {
+                    **log_data,
+                    "request_ip": request_ip,
+                    "challenge_ip": valid_user_challenge.get("ip"),
+                    "message": "Request IP doesn't match challenge IP",
+                }
+            )
+            self.write(
+                {
+                    "message": (
+                        "Your originating IP doesn't match the IP the challenge was created with. "
+                        "If you are developing locally, this is probably because your CLI (Weep) made an IPv6 "
+                        "request, and your web browser made an IPv4 request. Or visa-versa. If this is the case, "
+                        "set the local configuration for "
+                        "**challenge_url.request_ip_must_match_challenge_creation_ip** to **false**."
+                    )
+                }
+            )
+            return
 
         valid_user_challenge["visited"] = True
         valid_user_challenge["nonce"] = str(uuid.uuid4())
@@ -237,22 +237,21 @@ class ChallengeValidatorHandler(BaseHandler):
         # need to be explicitly set to False.
         if config.get(
             "challenge_url.request_ip_must_match_challenge_creation_ip", True
-        ):
-            if request_ip != valid_user_challenge.get("ip"):
-                log.error(
-                    {
-                        **log_data,
-                        "request_ip": request_ip,
-                        "challenge_ip": valid_user_challenge.get("ip"),
-                        "message": "Request IP doesn't match challenge IP",
-                    }
-                )
-                self.write(
-                    {
-                        "message": "Your originating IP doesn't match the IP the challenge was created with."
-                    }
-                )
-                return
+        ) and request_ip != valid_user_challenge.get("ip"):
+            log.error(
+                {
+                    **log_data,
+                    "request_ip": request_ip,
+                    "challenge_ip": valid_user_challenge.get("ip"),
+                    "message": "Request IP doesn't match challenge IP",
+                }
+            )
+            self.write(
+                {
+                    "message": "Your originating IP doesn't match the IP the challenge was created with."
+                }
+            )
+            return
 
         valid_user_challenge["status"] = "success"
         valid_user_challenge["user"] = self.user

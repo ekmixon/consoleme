@@ -33,19 +33,18 @@ class Policies:
         :return: AppDetailsArray
         """
 
-        apps_formatted = []
-
         application_details = config.get("application_details", {})
 
-        for app, details in application_details.items():
-            apps_formatted.append(
-                AppDetailsModel(
-                    name=app,
-                    owner=details.get("owner"),
-                    owner_url=details.get("owner_url"),
-                    app_url=details.get("app_url"),
-                )
+        apps_formatted = [
+            AppDetailsModel(
+                name=app,
+                owner=details.get("owner"),
+                owner_url=details.get("owner_url"),
+                app_url=details.get("app_url"),
             )
+            for app, details in application_details.items()
+        ]
+
         return AppDetailsArray(app_details=apps_formatted)
 
     async def get_roles_associated_with_app(

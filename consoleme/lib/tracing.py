@@ -63,18 +63,16 @@ class ConsoleMeTracer:
             return
 
         if self.spans.get(span_name):
-            if event == "exception":
-                if isinstance(arg[1], Exception) and arg[2]:  # Ensure traceback exists
-                    self.spans.get(span_name).tag(
-                        "error", arg[1]
-                    )  # Record exception string as a tag
+            if event == "exception" and isinstance(arg[1], Exception) and arg[2]:
+                self.spans.get(span_name).tag(
+                    "error", arg[1]
+                )  # Record exception string as a tag
             self.spans[span_name].finish()
             return
         span = self.tracer.new_child(self.primary_span.context)  # Start a child span
 
-        if event == "exception":
-            if isinstance(arg[1], Exception) and arg[2]:  # Ensure traceback exists
-                span.tag("error", arg[1])  # Record exception string as a tag
+        if event == "exception" and isinstance(arg[1], Exception) and arg[2]:
+            span.tag("error", arg[1])  # Record exception string as a tag
 
         span.kind(SERVER)
         span.start()
@@ -170,8 +168,7 @@ class ConsoleMeTracer:
         self.log_data["message"] = "finishing spans"
         log.debug(self.log_data)
         for span_id in list(self.spans):
-            span = self.spans.get(span_id)
-            if span:
+            if span := self.spans.get(span_id):
                 span.finish()
 
         # Finish primary span

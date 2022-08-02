@@ -23,9 +23,7 @@ def str2bool(v: Optional[Union[bool, str]]) -> bool:
         v = v.decode()
     if not v:
         return False
-    if type(v) is bool and v is True:
-        return True
-    return v.lower() in ["true", "True"]
+    return True if type(v) is bool and v is True else v.lower() in ["true", "True"]
 
 
 # Yield successive n-sized
@@ -55,8 +53,7 @@ def generate_html(d: List[Dict[str, Union[str, bool]]]) -> str:
         return
     pd.set_option("display.max_colwidth", -1)
     df = pd.DataFrame(d)
-    html = df.to_html(classes=["ui", "celled", "table"], escape=False, index=False)
-    return html
+    return df.to_html(classes=["ui", "celled", "table"], escape=False, index=False)
 
 
 def auto_split(s: str) -> List[str]:
@@ -69,55 +66,51 @@ def auto_split(s: str) -> List[str]:
 
 def is_valid_role_arn(arn: str) -> bool:
     # This is valid enough as far as we are concerned.
-    if not arn.startswith("arn:aws:iam::"):
-        return False
-    return True
+    return bool(arn.startswith("arn:aws:iam::"))
 
 
 def regex_filter(
     filter: Dict[str, str], items: List[Dict[str, Union[str, None, bool]]]
 ) -> List[Dict[str, Union[str, None, bool]]]:
-    if filter.get("filter"):
-        results = []
-        if filter.get("type", "") == "date":
-            from_date = None
-            to_date = None
-            try:
-                if filter.get("from_date"):
-                    from_date = parser.parse(filter.get("from_date"))
-                if filter.get("to_date"):
-                    to_date = parser.parse(filter.get("to_date"))
-                if not from_date and not to_date:
-                    return items
-            except:  # noqa
-                # Unable to parse date. Return items.
-                return results
-            for item in items:
-                item_date = parser.parse(
-                    item.get(filter.get("field"))
-                )  # What if invalid date
-                if from_date and to_date and from_date <= item_date <= to_date:
-                    results.append(item)
-                    continue
-                if from_date and not to_date and item_date >= from_date:
-                    results.append(item)
-                    continue
-                if to_date and not from_date and item_date <= to_date:
-                    results.append(item)
-                    continue
-            return results
-        else:
-            regexp = re.compile(r"{}".format(filter.get("filter")), re.IGNORECASE)
-            for item in items:
-                try:
-                    if regexp.search(item.get(filter.get("field"))):
-                        results.append(item)
-                except re.error:
-                    # Regex error. Return no results
-                    pass
-            return results
-    else:
+    if not filter.get("filter"):
         return items
+    results = []
+    if filter.get("type", "") == "date":
+        from_date = None
+        to_date = None
+        try:
+            if filter.get("from_date"):
+                from_date = parser.parse(filter.get("from_date"))
+            if filter.get("to_date"):
+                to_date = parser.parse(filter.get("to_date"))
+            if not from_date and not to_date:
+                return items
+        except:  # noqa
+            # Unable to parse date. Return items.
+            return results
+        for item in items:
+            item_date = parser.parse(
+                item.get(filter.get("field"))
+            )  # What if invalid date
+            if from_date:
+                if to_date and from_date <= item_date <= to_date:
+                    results.append(item)
+                    continue
+                if not to_date and item_date >= from_date:
+                    results.append(item)
+                    continue
+            if to_date and not from_date and item_date <= to_date:
+                results.append(item)
+    else:
+        regexp = re.compile(f'{filter.get("filter")}', re.IGNORECASE)
+        for item in items:
+            try:
+                if regexp.search(item.get(filter.get("field"))):
+                    results.append(item)
+            except re.error:
+                # Regex error. Return no results
+                pass
+    return results
 
 
 def is_in_group(
@@ -125,10 +118,7 @@ def is_in_group(
 ) -> bool:
     if isinstance(required_groups, str):
         required_groups = [required_groups]
-    for group in required_groups:
-        if group in user_groups or user == group:
-            return True
-    return False
+    return any(group in user_groups or user == group for group in required_groups)
 
 
 async def write_json_error(message, obj):
@@ -140,7 +130,7 @@ async def write_json_error(message, obj):
 async def sort_nested_dictionary_lists(d):
     for k, v in d.items():
         if isinstance(v, list):
-            for i in range(0, len(v)):
+            for i in range(len(v)):
                 if isinstance(v[i], dict):
                     v[i] = await sort_nested_dictionary_lists(v[i])
                 d[k] = sorted(v)
@@ -165,9 +155,7 @@ def is_in_time_range(t, time_range):
         second=0,
         microsecond=0,
     )
-    if t < valid_start_time or t > valid_end_time:
-        return False
-    return True
+    return t >= valid_start_time and t <= valid_end_time
 
 
 async def get_random_security_logo():
@@ -183,17 +171,17 @@ async def get_random_security_logo():
 
 async def generate_random_string(string_length=4):
     letters = string.ascii_lowercase
-    return "".join(random.choice(letters) for i in range(string_length))  # nosec
+    return "".join(random.choice(letters) for _ in range(string_length))
 
 
 async def filter_table(filter_key, filter_value, data):
-    if not (filter_key and filter_value):
+    if not filter_key or not filter_value:
         # Filter parameters are incorrect. Don't filter
         return data
     results = []
     if isinstance(filter_value, str):
         try:
-            regexp = re.compile(r"{}".format(str(filter_value).strip()), re.IGNORECASE)
+            regexp = re.compile(f"{str(filter_value).strip()}", re.IGNORECASE)
         except:  # noqa
             # Regex is incorrect. Don't filter
             return data
@@ -214,9 +202,12 @@ async def filter_table(filter_key, filter_value, data):
     ):
         # Handles epoch time filter. We expect a start_time and an end_time in
         # a list of elements, and they should be integers
-        for d in data:
-            if filter_value[0] < int(d.get(filter_key)) < filter_value[1]:
-                results.append(d)
+        results.extend(
+            d
+            for d in data
+            if filter_value[0] < int(d.get(filter_key)) < filter_value[1]
+        )
+
         return results
 
 
@@ -252,19 +243,13 @@ async def should_force_redirect(req):
     """
     if req.headers.get("X-Requested-With", "") == "XMLHttpRequest":
         return False
-    if req.headers.get("Accept") == "application/json":
-        return False
-    return True
+    return req.headers.get("Accept") != "application/json"
 
 
 def sort_dict(original):
     """Recursively sorts dictionary keys and dictionary values in alphabetical order"""
     if isinstance(original, dict):
-        res = (
-            dict()
-        )  # Make a new "ordered" dictionary. No need for Collections in Python 3.7+
-        for k, v in sorted(original.items()):
-            res[k] = v
+        res = dict(sorted(original.items()))
         d = res
     else:
         d = original
@@ -292,14 +277,9 @@ def un_wrap_json(json_obj: Any) -> Any:
         return str(json_obj)
     # Is this a Dictionary?
     if isinstance(json_obj, dict):
-        decoded = {}
-        for k, v in json_obj.items():
-            decoded[k] = un_wrap_json(v)
-    # Is this a List?
+        decoded = {k: un_wrap_json(v) for k, v in json_obj.items()}
     elif isinstance(json_obj, list):
-        decoded = []
-        for x in json_obj:
-            decoded.append(un_wrap_json(x))
+        decoded = [un_wrap_json(x) for x in json_obj]
         # Yes, try to sort the contents of lists. This is because AWS does not consistently store list ordering for many resource types:
         try:
             sorted_list = sorted(decoded)
@@ -322,10 +302,7 @@ def un_wrap_json(json_obj: Any) -> Any:
                     return un_wrap_json(decoded)
             # Check if this string is URL Encoded - if it is, then re-run it through:
             decoded = unquote_plus(json_obj)
-            if decoded != json_obj:
-                return un_wrap_json(decoded)
-            return json_obj
-        # If we didn't get a JSON back (exception), then just return the raw value back:
+            return un_wrap_json(decoded) if decoded != json_obj else json_obj
         except Exception:  # noqa
             return json_obj
     return decoded

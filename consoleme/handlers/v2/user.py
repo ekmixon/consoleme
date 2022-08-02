@@ -211,12 +211,12 @@ class LoginHandler(TornadoRequestHandler):
             encoded_cookie,
             expires=expiration,
             secure=config.get(
-                "auth.cookie.secure",
-                True if "https://" in config.get("url") else False,
+                "auth.cookie.secure", "https://" in config.get("url")
             ),
             httponly=config.get("auth.cookie.httponly", True),
             samesite=config.get("auth.cookie.samesite", True),
         )
+
         res = WebResponse(
             status="redirect",
             redirect_url=login_attempt.after_redirect_uri,
@@ -289,7 +289,6 @@ class UserManagementHandler(BaseAPIV2Handler):
                 message=f"Successfully created user {request.username}.",
             )
             self.write(res.json(exclude_unset=True, exclude_none=True))
-            return
         elif request.user_management_action.value == "update":
             log.debug(
                 {
@@ -326,7 +325,6 @@ class UserManagementHandler(BaseAPIV2Handler):
                 message=f"Successfully updated user {request.username}.",
             )
             self.write(res.json(exclude_unset=True, exclude_none=True))
-            return
         elif request.user_management_action.value == "delete":
             log.debug(
                 {
@@ -344,10 +342,10 @@ class UserManagementHandler(BaseAPIV2Handler):
                 message=f"Successfully deleted user {request.username}.",
             )
             self.write(res.json(exclude_unset=True, exclude_none=True))
-            return
         else:
             errors = ["Change type is not supported by this endpoint."]
             await handle_generic_error_response(
                 self, generic_error_message, errors, 403, "invalid_request", log_data
             )
-            return
+
+        return

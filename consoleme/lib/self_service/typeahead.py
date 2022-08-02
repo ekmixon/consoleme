@@ -45,22 +45,22 @@ async def cache_self_service_typeahead() -> SelfServiceTypeaheadModelArray:
         )
 
         if resource_templates:
-            for resource_template in resource_templates.templated_resources:
-                typeahead_entries.append(
-                    SelfServiceTypeaheadModel(
-                        icon="users",
-                        number_of_affected_resources=resource_template.number_of_accounts,
-                        display_text=resource_template.name,
-                        details_endpoint=f"/api/v2/templated_resource/{resource_template.repository_name}/"
-                        + f"{resource_template.resource}",
-                        principal=HoneybeeAwsResourceTemplatePrincipalModel(
-                            principal_type="HoneybeeAwsResourceTemplate",
-                            repository_name=resource_template.repository_name,
-                            resource_identifier=resource_template.resource,
-                            resource_url=resource_template.web_path,
-                        ),
-                    )
+            typeahead_entries.extend(
+                SelfServiceTypeaheadModel(
+                    icon="users",
+                    number_of_affected_resources=resource_template.number_of_accounts,
+                    display_text=resource_template.name,
+                    details_endpoint=f"/api/v2/templated_resource/{resource_template.repository_name}/"
+                    + f"{resource_template.resource}",
+                    principal=HoneybeeAwsResourceTemplatePrincipalModel(
+                        principal_type="HoneybeeAwsResourceTemplate",
+                        repository_name=resource_template.repository_name,
+                        resource_identifier=resource_template.resource,
+                        resource_url=resource_template.web_path,
+                    ),
                 )
+                for resource_template in resource_templates.templated_resources
+            )
 
     for role, details_j in role_data.items():
         account_id = role.split(":")[4]

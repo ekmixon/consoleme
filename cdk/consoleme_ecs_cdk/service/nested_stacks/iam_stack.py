@@ -120,9 +120,10 @@ class IAMStack(cdk.NestedStack):
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["s3:GetObject", "s3:ListBucket"],
-                resources=[s3_bucket.bucket_arn, s3_bucket.bucket_arn + "/*"],
+                resources=[s3_bucket.bucket_arn, f"{s3_bucket.bucket_arn}/*"],
             )
         )
+
 
         trust_role = iam.Role(
             self,
@@ -231,9 +232,10 @@ class IAMStack(cdk.NestedStack):
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["s3:PutObject", "s3:DeleteObject"],
-                resources=[s3_bucket.bucket_arn + "/*"],
+                resources=[f"{s3_bucket.bucket_arn}/*"],
             )
         )
+
 
         self.ecs_task_role = ecs_task_role
         self.ecs_task_execution_role = ecs_task_execution_role

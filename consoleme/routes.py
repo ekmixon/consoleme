@@ -100,10 +100,10 @@ def make_jwt_validator():
         raise Exception("Config 'sso.jwk_url' is not defined")
     jwk_set = requests.get(jwk_url).json()
     keys = [k for k in jwk_set["keys"] if k["kty"] == "RSA"]
-    jwk_schema = config.get("sso.jwk_schema")
-    if not jwk_schema:
+    if jwk_schema := config.get("sso.jwk_schema"):
+        return mk_jwks_validator(keys, jwk_schema["header"], jwk_schema["payload"])
+    else:
         raise Exception("Config 'sso.jwk_schema' is not defined")
-    return mk_jwks_validator(keys, jwk_schema["header"], jwk_schema["payload"])
 
 
 def make_app(jwt_validator=None):
@@ -219,9 +219,7 @@ def make_app(jwt_validator=None):
         ),
         ui_modules=internal_routes.ui_modules,
     )
-    sentry_dsn = config.get("sentry.dsn")
-
-    if sentry_dsn:
+    if sentry_dsn := config.get("sentry.dsn"):
         sentry_sdk.init(
             dsn=sentry_dsn,
             integrations=[

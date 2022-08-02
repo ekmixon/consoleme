@@ -7,10 +7,6 @@ async def authenticate_user_by_credentials(request):
     email = None
     groups = None
 
-    if request.request.path == "/auth":
-        # If request is post and has credentials, validate or return error
-        pass
-
     if email and groups and config.get("auth.set_auth_cookie"):
         pass
         # encoded_cookie = await generate_jwt_token(email, groups)

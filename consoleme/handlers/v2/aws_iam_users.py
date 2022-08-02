@@ -135,7 +135,7 @@ class UserDetailHandler(BaseAPIV2Handler):
                     "ip": self.ip,
                 },
             )
-            self.write_error(500, message="Error occurred deleting IAM user: " + str(e))
+            self.write_error(500, message=f"Error occurred deleting IAM user: {str(e)}")
             return
 
         # if here, user has been successfully deleted

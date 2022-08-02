@@ -25,11 +25,13 @@ class ManagedPoliciesOnPrincipalHandler(BaseAPIV2Handler):
     """
 
     async def get(self, arn):
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
+        if (
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
+        ):
+            raise MustBeFte("Only FTEs are authorized to view this page.")
 
         errors = []
         if not arn.startswith("arn:aws:iam::"):
@@ -107,11 +109,13 @@ class ManagedPoliciesHandler(BaseAPIV2Handler):
     """
 
     async def get(self, policy_arn: str):
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
+        if (
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
+        ):
+            raise MustBeFte("Only FTEs are authorized to view this page.")
 
         account_id = policy_arn.split(":")[4]
         policy_name = policy_arn.split("/")[-1]
@@ -150,11 +154,13 @@ class ManagedPoliciesForAccountHandler(BaseAPIV2Handler):
         """
         Retrieve a list of managed policies for an account.
         """
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
+        if (
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
+        ):
+            raise MustBeFte("Only FTEs are authorized to view this page.")
         try:
             all_account_managed_policies = (
                 await get_all_iam_managed_policies_for_account(account_id)

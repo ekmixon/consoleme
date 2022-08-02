@@ -14,7 +14,7 @@ credential_mapping = CredentialAuthorizationMapping()
 
 
 def _get_last_page(total: int, page_size: int) -> int:
-    pages = int(total / page_size)
+    pages = total // page_size
     if not total % page_size:
         pages += 1
     return pages
@@ -57,8 +57,7 @@ class AuditRolesHandler(BaseMtlsHandler):
             log.warning(log_data)
             count = 1000
 
-        if page < 0:
-            page = 0
+        page = max(page, 0)
         if count <= 0:
             count = 1000
 

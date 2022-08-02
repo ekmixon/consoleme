@@ -95,8 +95,7 @@ default_retry_kwargs = {
 
 class Celery(celery.Celery):
     def on_configure(self) -> None:
-        sentry_dsn = config.get("sentry.dsn")
-        if sentry_dsn:
+        if sentry_dsn := config.get("sentry.dsn"):
             sentry_sdk.init(
                 sentry_dsn,
                 integrations=[
@@ -229,13 +228,11 @@ def get_celery_request_tags(**kwargs):
         "task_id": task_id,
         "sender_hostname": sender_hostname,
         "receiver_hostname": receiver_hostname,
+        "expired": kwargs.get("expired", False),
     }
 
-    tags["expired"] = kwargs.get("expired", False)
-    exception = kwargs.get("exception")
-    if not exception:
-        exception = kwargs.get("exc")
-    if exception:
+
+    if exception := kwargs.get("exception") or kwargs.get("exc"):
         tags["error"] = repr(exception)
         if isinstance(exception, SoftTimeLimitExceeded):
             tags["timed_out"] = True
@@ -305,14 +302,12 @@ def report_task_retry(**kwargs):
         "message": "Celery Task Retry",
     }
 
-    # Add traceback if exception info is in the kwargs
-    einfo = kwargs.get("einfo")
-    if einfo:
+    if einfo := kwargs.get("einfo"):
         log_data["traceback"] = einfo.traceback
 
     error_tags = get_celery_request_tags(**kwargs)
 
-    log_data.update(error_tags)
+    log_data |= error_tags
     log.error(log_data)
     error_tags.pop("error", None)
     error_tags.pop("task_id", None)
@@ -339,14 +334,12 @@ def report_failed_task(**kwargs):
         "message": "Celery Task Failure",
     }
 
-    # Add traceback if exception info is in the kwargs
-    einfo = kwargs.get("einfo")
-    if einfo:
+    if einfo := kwargs.get("einfo"):
         log_data["traceback"] = einfo.traceback
 
     error_tags = get_celery_request_tags(**kwargs)
 
-    log_data.update(error_tags)
+    log_data |= error_tags
     log.error(log_data)
     error_tags.pop("error", None)
     error_tags.pop("task_id", None)
@@ -373,7 +366,7 @@ def report_unknown_task(**kwargs):
 
     error_tags = get_celery_request_tags(**kwargs)
 
-    log_data.update(error_tags)
+    log_data |= error_tags
     log.error(log_data)
     error_tags.pop("error", None)
     error_tags.pop("task_id", None)
@@ -400,7 +393,7 @@ def report_rejected_task(**kwargs):
 
     error_tags = get_celery_request_tags(**kwargs)
 
-    log_data.update(error_tags)
+    log_data |= error_tags
     log.error(log_data)
     error_tags.pop("error", None)
     error_tags.pop("task_id", None)
@@ -427,7 +420,7 @@ def report_revoked_task(**kwargs):
 
     error_tags = get_celery_request_tags(**kwargs)
 
-    log_data.update(error_tags)
+    log_data |= error_tags
     log.error(log_data)
     error_tags.pop("error", None)
     error_tags.pop("task_id", None)
@@ -439,9 +432,7 @@ def is_task_already_running(fun, args):
     Returns True if an identical task for a given function (and arguments) is already being
     ran by Celery.
     """
-    task_id = None
-    if celery.current_task:
-        task_id = celery.current_task.request.id
+    task_id = celery.current_task.request.id if celery.current_task else None
     if not task_id:
         return False
     log.debug(task_id)

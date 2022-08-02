@@ -52,14 +52,12 @@ class WebpackLoader(object):
             yield chunk
 
     def get_chunk_url(self, chunk):
-        public_path = chunk.get("publicPath")
-        if public_path:
+        if public_path := chunk.get("publicPath"):
             return public_path
 
-        relpath = "{0}{1}".format(BUNDLE_DIR_NAME, chunk["name"])
         # TODO: revisit this
         # return staticfiles_storage.url(relpath)
-        return relpath
+        return "{0}{1}".format(BUNDLE_DIR_NAME, chunk["name"])
 
     def get_bundle(self, bundle_name):
         assets = self.get_assets()
@@ -96,9 +94,7 @@ class WebpackLoader(object):
                 assets["error"] = "Unknown Error"
             if "message" not in assets:
                 assets["message"] = ""
-            error = "{} in {} {}".format(
-                assets["error"], assets["file"], assets["message"]
-            )
+            error = f'{assets["error"]} in {assets["file"]} {assets["message"]}'
             raise WebpackError(error)
 
         raise WebpackLoaderBadStatsError(

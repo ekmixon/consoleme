@@ -74,7 +74,7 @@ class ConsoleMeRedis(redis.StrictRedis):
             result = None
         if not result and automatically_restore_from_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 result = obj.get()["Body"].read().decode("utf-8")
             except s3.meta.client.exceptions.NoSuchKey:
                 pass
@@ -114,7 +114,7 @@ class ConsoleMeRedis(redis.StrictRedis):
             result = None
         if automatically_backup_to_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 obj.put(Body=str(args[1]))
             except Exception as e:
                 function = f"{__name__}.{self.__class__.__name__}.{sys._getframe().f_code.co_name}"
@@ -175,7 +175,7 @@ class ConsoleMeRedis(redis.StrictRedis):
             result = None
         if automatically_backup_to_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 # Write to S3 in a separate thread
                 t = threading.Thread(
                     target=obj.put, kwargs={"Body": json.dumps(args[1])}
@@ -218,7 +218,7 @@ class ConsoleMeRedis(redis.StrictRedis):
             result = None
         if automatically_backup_to_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 try:
                     current = json.loads(obj.get()["Body"].read().decode("utf-8"))
                     current[args[1]] = args[2]
@@ -266,7 +266,7 @@ class ConsoleMeRedis(redis.StrictRedis):
 
         if not result and automatically_restore_from_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 current = json.loads(obj.get()["Body"].read().decode("utf-8"))
                 result = current.get(args[1])
                 if result:
@@ -331,7 +331,7 @@ class ConsoleMeRedis(redis.StrictRedis):
             result = None
         if not result and automatically_restore_from_s3:
             try:
-                obj = s3.Object(s3_bucket, s3_folder + f"/{args[0]}")
+                obj = s3.Object(s3_bucket, f"{s3_folder}/{args[0]}")
                 result_j = obj.get()["Body"].read().decode("utf-8")
                 result = json.loads(result_j)
                 if result:
@@ -354,21 +354,14 @@ class ConsoleMeRedis(redis.StrictRedis):
 
 
 class RedisHandler:
-    def __init__(
-        self,
-        host: str = config.get(
-            "redis.host.{}".format(region), config.get("redis.host.global", "localhost")
-        ),
-        port: int = config.get("redis.port", 6379),
-        db: int = config.get("redis.db", 0),
-    ) -> None:
+    def __init__(self, host: str = config.get(f"redis.host.{region}", config.get("redis.host.global", "localhost")), port: int = config.get("redis.port", 6379), db: int = config.get("redis.db", 0)) -> None:
         self.red = None
         self.host = host
         self.port = port
         self.db = db
-        self.enabled = True
-        if self.host is None or self.port is None or self.db is None:
-            self.enabled = False
+        self.enabled = (
+            self.host is not None and self.port is not None and self.db is not None
+        )
 
     async def redis(self, db: int = 0) -> Redis:
         if config.get("redis.use_redislite"):
@@ -404,25 +397,19 @@ class RedisHandler:
 async def redis_get(key: str, default: Optional[str] = None) -> Optional[str]:
     red = await RedisHandler().redis()
     v = await sync_to_async(red.get)(key)
-    if not v:
-        return default
-    return v
+    return v or default
 
 
 async def redis_hgetall(key: str, default=None):
     red = await RedisHandler().redis()
     v = await sync_to_async(red.hgetall)(key)
-    if not v:
-        return default
-    return v
+    return v or default
 
 
 async def redis_hget(name: str, key: str, default=None):
     red = await RedisHandler().redis()
     v = await sync_to_async(red.hget)(name, key)
-    if not v:
-        return default
-    return v
+    return v or default
 
 
 def redis_get_sync(key: str, default: None = None) -> Optional[str]:
@@ -431,9 +418,7 @@ def redis_get_sync(key: str, default: None = None) -> Optional[str]:
         v = red.get(key)
     except redis.exceptions.ConnectionError:
         v = None
-    if not v:
-        return default
-    return v
+    return v or default
 
 
 async def redis_hsetex(name: str, key: str, value: Any, expiration_seconds: int):

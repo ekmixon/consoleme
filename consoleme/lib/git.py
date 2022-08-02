@@ -37,8 +37,9 @@ def store_iam_resources_in_git(
     try:
         repo = clone_repo(git_url, tempdir)
         repo.config_writer().set_value("user", "name", "ConsoleMe").release()
-        email = config.get("cache_iam_resources_for_account.store_in_git.email")
-        if email:
+        if email := config.get(
+            "cache_iam_resources_for_account.store_in_git.email"
+        ):
             repo.config_writer().set_value("user", "email", email).release()
 
         expected_entries = {

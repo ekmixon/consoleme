@@ -67,11 +67,12 @@ class CredentialsSchema(Schema):
     @validates_schema
     def validate_app_name_request(self, data, *args, **kwargs):
         """Validate that if an app name is provided, then a requested role / user role aren't specified"""
-        if data.get("app_name"):
-            if data.get("requested_role") or data.get("user_role"):
-                raise ValidationError(
-                    "Cannot specify requested_role/user_role and an app name."
-                )
+        if data.get("app_name") and (
+            data.get("requested_role") or data.get("user_role")
+        ):
+            raise ValidationError(
+                "Cannot specify requested_role/user_role and an app name."
+            )
 
         return data
 
@@ -90,7 +91,7 @@ class GetCredentialsHandler(BaseMtlsHandler):
         self.eligible_roles = []
 
     async def raise_if_certificate_too_old(self, role, log_data=None):
-        log_data = {} if not log_data else log_data
+        log_data = log_data or {}
         try:
             max_cert_age = await group_mapping.get_max_cert_age_for_role(role)
             max_cert_age_message = config.get(
@@ -205,15 +206,13 @@ class GetCredentialsHandler(BaseMtlsHandler):
                 for account in filtered_accounts.accounts:
                     account_ids.add(account.id)
 
-            potential_arns = []
-            # for all roles associated with app, find the one that is also an account in potential account ids
-            for role in role_models:
-                if role.account_id in account_ids:
-                    potential_arns.append(role.arn)
+            potential_arns = [
+                role.arn for role in role_models if role.account_id in account_ids
+            ]
 
             if len(potential_arns) != 1:
                 # if length isn't exactly 1, then it's an error either way (0 or more than 1)
-                if len(potential_arns) == 0:
+                if not potential_arns:
                     code = "900"
                     message = "No matching roles"
                 else:
@@ -563,8 +562,6 @@ class GetCredentialsHandler(BaseMtlsHandler):
                 "request_id": self.request_uuid,
             }
             self.write(error)
-            await self.finish()
-            return
         else:
             log_data["message"] = "Success. Returning credentials"
             log.debug(log_data)
@@ -581,5 +578,6 @@ class GetCredentialsHandler(BaseMtlsHandler):
             credentials.pop("PackedPolicySize", None)
             self.write(json.dumps(credentials))
             self.set_header("Content-Type", "application/json")
-            await self.finish()
-            return
+
+        await self.finish()
+        return

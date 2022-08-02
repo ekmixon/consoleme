@@ -74,16 +74,16 @@ async def store_json_results_in_redis_and_s3(
         s3_bucket = config.get("consoleme_s3_bucket")
 
     if redis_key:
-        if redis_data_type == "str":
+        if redis_data_type == "hash":
+            if data:
+                red.hmset(redis_key, data)
+        elif redis_data_type == "str":
             if isinstance(data, str):
                 red.set(redis_key, data)
             else:
                 red.set(
                     redis_key, json.dumps(data, cls=SetEncoder, default=json_encoder)
                 )
-        elif redis_data_type == "hash":
-            if data:
-                red.hmset(redis_key, data)
         else:
             raise UnsupportedRedisDataType("Unsupported redis_data_type passed")
         red.hset(last_updated_redis_key, redis_key, last_updated)
@@ -141,12 +141,11 @@ async def retrieve_json_data_from_redis_or_s3(
 
     data = None
     if redis_key:
-        if redis_data_type == "str":
-            data_s = red.get(redis_key)
-            if data_s:
-                data = json.loads(data_s, object_hook=json_object_hook)
-        elif redis_data_type == "hash":
+        if redis_data_type == "hash":
             data = red.hgetall(redis_key)
+        elif redis_data_type == "str":
+            if data_s := red.get(redis_key):
+                data = json.loads(data_s, object_hook=json_object_hook)
         else:
             raise UnsupportedRedisDataType("Unsupported redis_data_type passed")
         if data and max_age:
@@ -163,12 +162,15 @@ async def retrieve_json_data_from_redis_or_s3(
         try:
             s3_object = get_object(Bucket=s3_bucket, Key=s3_key)
         except ClientError as e:
-            if str(e) == (
-                "An error occurred (NoSuchKey) when calling the GetObject operation: "
-                "The specified key does not exist."
+            if (
+                str(e)
+                == (
+                    "An error occurred (NoSuchKey) when calling the GetObject operation: "
+                    "The specified key does not exist."
+                )
+                and default is not None
             ):
-                if default is not None:
-                    return default
+                return default
             raise
         s3_object_content = await sync_to_async(s3_object["Body"].read)()
         if s3_key.endswith(".gz"):
@@ -212,25 +214,27 @@ async def retrieve_json_data_from_s3_bulk(
     :param s3_keys: S3 keys to retrieve data from
     :return:
     """
-    tasks = []
-    for s3_key in s3_keys:
-        tasks.append(
-            {
-                "fn": retrieve_json_data_from_redis_or_s3,
-                "kwargs": {
-                    "s3_bucket": s3_bucket,
-                    "s3_key": s3_key,
-                    "max_age": max_age,
-                    "json_object_hook": json_object_hook,
-                    "json_encoder": json_encoder,
-                },
-            }
-        )
+    tasks = [
+        {
+            "fn": retrieve_json_data_from_redis_or_s3,
+            "kwargs": {
+                "s3_bucket": s3_bucket,
+                "s3_key": s3_key,
+                "max_age": max_age,
+                "json_object_hook": json_object_hook,
+                "json_encoder": json_encoder,
+            },
+        }
+        for s3_key in s3_keys
+    ]
+
     parallelized_task_results = await run_in_parallel(tasks, sync=False)
 
-    all_function_results = []
-    for parallelized_task_result in parallelized_task_results:
-        all_function_results.append(parallelized_task_result["result"])
+    all_function_results = [
+        parallelized_task_result["result"]
+        for parallelized_task_result in parallelized_task_results
+    ]
+
     results = []
     for result in all_function_results:
         results.extend(result)

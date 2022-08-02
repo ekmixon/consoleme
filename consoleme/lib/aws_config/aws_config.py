@@ -33,8 +33,7 @@ def query(
             ConfigurationAggregatorName=configuration_aggregator_name,
             Limit=100,
         )
-        for r in response.get("Results", []):
-            resources.append(json.loads(r))
+        resources.extend(json.loads(r) for r in response.get("Results", []))
         while response.get("NextToken"):
             response = config_client.select_aggregate_resource_config(
                 Expression=query,
@@ -42,9 +41,7 @@ def query(
                 Limit=100,
                 NextToken=response["NextToken"],
             )
-            for r in response.get("Results", []):
-                resources.append(json.loads(r))
-        return resources
+            resources.extend(json.loads(r) for r in response.get("Results", []))
     else:  # Don't use Config aggregator and instead query all the regions on an account
         session = boto3.Session()
         available_regions = session.get_available_regions("config")
@@ -69,15 +66,13 @@ def query(
                 response = config_client.select_resource_config(
                     Expression=query, Limit=100
                 )
-                for r in response.get("Results", []):
-                    resources.append(json.loads(r))
+                resources.extend(json.loads(r) for r in response.get("Results", []))
                 # Query Config for a specific account in all regions we care about
                 while response.get("NextToken"):
                     response = config_client.select_resource_config(
                         Expression=query, Limit=100, NextToken=response["NextToken"]
                     )
-                    for r in response.get("Results", []):
-                        resources.append(json.loads(r))
+                    resources.extend(json.loads(r) for r in response.get("Results", []))
             except ClientError as e:
                 log.error(
                     {
@@ -92,4 +87,5 @@ def query(
                     exc_info=True,
                 )
                 sentry_sdk.capture_exception()
-        return resources
+
+    return resources

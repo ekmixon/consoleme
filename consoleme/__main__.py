@@ -22,11 +22,11 @@ log = config.get_logger()
 
 
 def main():
-    if config.get("sso.create_mock_jwk"):
-        app = make_app(jwt_validator=lambda x: {})
-    else:
-        app = make_app()
-    return app
+    return (
+        make_app(jwt_validator=lambda x: {})
+        if config.get("sso.create_mock_jwk")
+        else make_app()
+    )
 
 
 if config.get("tornado.uvloop", True):
@@ -49,10 +49,11 @@ def init():
     if config.get("tornado.debug", False):
         for directory, _, files in os.walk("consoleme/templates"):
             [
-                tornado.autoreload.watch(directory + "/" + f)
+                tornado.autoreload.watch(f"{directory}/{f}")
                 for f in files
                 if not f.startswith(".")
             ]
+
     log.debug({"message": "Server started"})
     asyncio.get_event_loop().run_forever()
 

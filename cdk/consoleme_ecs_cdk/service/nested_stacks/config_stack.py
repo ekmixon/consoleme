@@ -49,10 +49,10 @@ class ConfigStack(cdk.NestedStack):
             prevent_user_existence_errors=True,
             o_auth=cognito.OAuthSettings(
                 callback_urls=[
-                    "https://" + domain_name + "/auth",
-                    "https://" + domain_name + "/oauth2/idpresponse",
+                    f"https://{domain_name}/auth",
+                    f"https://{domain_name}/oauth2/idpresponse",
                 ],
-                logout_urls=["https://" + domain_name + "/logout"],
+                logout_urls=[f"https://{domain_name}/logout"],
                 flows=cognito.OAuthFlows(
                     authorization_code_grant=True, implicit_code_grant=True
                 ),
@@ -60,6 +60,7 @@ class ConfigStack(cdk.NestedStack):
             ),
             auth_flows=cognito.AuthFlow(user_password=True, user_srp=True),
         )
+
 
         describe_cognito_user_pool_client = cr.AwsCustomResource(
             self,

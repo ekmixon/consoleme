@@ -163,18 +163,14 @@ was detected. This notification will disappear when a similar error has not occu
                     predictable_id
                 ].message = notification_message
                 new_or_changed_notifications[predictable_id].details = cloudtrail_error
-            else:
-                # Maybe Add IAM policy simulation result to the CloudTrail event, and in turn, the notification details
-                # We don't want to simulate events for every single update of a notification, just one time for
-                # Initial creation
-                if config.get(
+            elif config.get(
                     "process_cloudtrail_errors.simulate_iam_principal_action"
                 ):
-                    generated_notification.details[
-                        "iam_policy_simulation"
-                    ] = await simulate_iam_principal_action(
-                        arn, event_call, resource, cloudtrail_error.get("source_ip")
-                    )
+                generated_notification.details[
+                    "iam_policy_simulation"
+                ] = await simulate_iam_principal_action(
+                    arn, event_call, resource, cloudtrail_error.get("source_ip")
+                )
             if principal_owner and not all_notifications.get(predictable_id):
                 generated_notification.users_or_groups.add(principal_owner)
                 new_or_changed_notifications[predictable_id] = generated_notification
@@ -185,16 +181,11 @@ was detected. This notification will disappear when a similar error has not occu
             ):  # Session ID is instance ID
                 continue
 
-            if new_or_changed_notifications.get(predictable_id):
-                new_or_changed_notifications[predictable_id].users_or_groups.add(
-                    session_name
-                )
-            else:
+            if not new_or_changed_notifications.get(predictable_id):
                 new_or_changed_notifications[predictable_id] = generated_notification
-                new_or_changed_notifications[predictable_id].users_or_groups.add(
-                    session_name
-                )
-
+            new_or_changed_notifications[predictable_id].users_or_groups.add(
+                session_name
+            )
             # Optionally add development users to the notification
             new_or_changed_notifications[predictable_id].users_or_groups.update(
                 set(config.get("process_cloudtrail_errors.additional_notify_users", []))

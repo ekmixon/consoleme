@@ -36,18 +36,16 @@ stats = get_plugin_by_name(config.get("plugins.metrics", "default_metrics"))()
 
 
 async def invalid_characters_in_policy(policy_value):
-    if not policy_value:
-        return False
-    if "<" in policy_value or ">" in policy_value:
-        return True
-    return False
+    return "<" in policy_value or ">" in policy_value if policy_value else False
 
 
 def escape_json(code):
-    escaped = re.sub(
-        r"(?<=</)s(?=cript)", lambda m: f"\\u{ord(m.group(0)):04x}", code, flags=re.I
+    return re.sub(
+        r"(?<=</)s(?=cript)",
+        lambda m: f"\\u{ord(m.group(0)):04x}",
+        code,
+        flags=re.I,
     )
-    return escaped
 
 
 async def parse_policy_change_request(
@@ -116,15 +114,17 @@ async def parse_policy_change_request(
                     log_data["message"] = result["error"]
                     log.error(log_data)
                     return result
-                if existing_policy.get("PolicyName") == name:
-                    if existing_policy.get("PolicyDocument") == value:
-                        result["status"] = "error"
-                        result[
-                            "error"
-                        ] = "No changes were found between the updated and existing policy."
-                        log_data["message"] = result["error"]
-                        log.error(log_data)
-                        return result
+                if (
+                    existing_policy.get("PolicyName") == name
+                    and existing_policy.get("PolicyDocument") == value
+                ):
+                    result["status"] = "error"
+                    result[
+                        "error"
+                    ] = "No changes were found between the updated and existing policy."
+                    log_data["message"] = result["error"]
+                    log.error(log_data)
+                    return result
 
             action = data.get("action", "attach")
 
@@ -145,11 +145,11 @@ async def parse_policy_change_request(
 
             entry: dict = {"action": action, "arn": policy_arn}
             if action == "detach":
-                seen = False
-                for policy in role["policy"]["AttachedManagedPolicies"]:
-                    if policy["PolicyName"] == policy_name:
-                        seen = True
-                        break
+                seen = any(
+                    policy["PolicyName"] == policy_name
+                    for policy in role["policy"]["AttachedManagedPolicies"]
+                )
+
                 if not seen:
                     result["status"] = "error"
                     result["error"] = (
@@ -248,9 +248,8 @@ async def can_update_requests(request, user, groups):
     can_update = user in request["username"]
 
     # Allow admins to return requests back to pending state
-    if not can_update:
-        if can_admin_policies(user, groups):
-            return True
+    if not can_update and can_admin_policies(user, groups):
+        return True
 
     return can_update
 
@@ -260,9 +259,8 @@ async def can_update_cancel_requests_v2(requester_username, user, groups):
     can_update = user == requester_username
 
     # Allow admins to update / cancel requests
-    if not can_update:
-        if can_admin_policies(user, groups):
-            return True
+    if not can_update and can_admin_policies(user, groups):
+        return True
 
     return can_update
 
@@ -297,9 +295,10 @@ async def get_policy_request_uri(request):
 
 
 async def get_policy_request_uri_v2(extended_request: ExtendedRequestModel):
-    if extended_request.request_url:
-        return extended_request.request_url
-    return f"{config.get('url')}/policies/request/{extended_request.id}"
+    return (
+        extended_request.request_url
+        or f"{config.get('url')}/policies/request/{extended_request.id}"
+    )
 
 
 async def validate_policy_name(policy_name):
@@ -380,12 +379,13 @@ def get_actions_for_resource(resource_arn: str, statement: Dict) -> List[str]:
     actions = statement.get("Action", [])
     actions = actions if isinstance(actions, list) else [actions]
     for action in actions:
-        if action == "*":
+        if (
+            action != "*"
+            and get_service_from_action(action) == resource_service
+            and action not in results
+            or action == "*"
+        ):
             results.append(action)
-        else:
-            if get_service_from_action(action) == resource_service:
-                if action not in results:
-                    results.append(action)
 
     return results
 
@@ -446,15 +446,15 @@ async def get_formatted_policy_changes(account_id, arn, request):
                 }
             )
 
-        assume_role_policy_document = policy_change.get("assume_role_policy_document")
-        if assume_role_policy_document:
+        if assume_role_policy_document := policy_change.get(
+            "assume_role_policy_document"
+        ):
             if policy_change.get("arn") != arn:
                 raise InvalidRequestParameter(
                     "Only one role can be changed in a request"
                 )
             existing_ar_policy = existing_role["policy"]["AssumeRolePolicyDocument"]
-            old_policy = request.get("old_policy", {})
-            if old_policy:
+            if old_policy := request.get("old_policy", {}):
                 existing_ar_policy = json.loads(old_policy)[0]
 
             diff = DeepDiff(
@@ -474,8 +474,7 @@ async def get_formatted_policy_changes(account_id, arn, request):
                 }
             )
 
-        resource_policy_documents = request.get("resource_policies")
-        if resource_policy_documents:
+        if resource_policy_documents := request.get("resource_policies"):
             for resource in resource_policy_documents:
                 existing_policy_document = None
                 # TODO: make this actually fetch the resource policy
@@ -559,9 +558,7 @@ async def get_resource_name_for_arn(arn: str) -> str:
 
 async def get_resource_sub_type_for_arn(arn: str) -> str:
     resource_name = arn.split(":")[5]
-    if "/" in resource_name:
-        return resource_name.split("/")[0]
-    return ""
+    return resource_name.split("/")[0] if "/" in resource_name else ""
 
 
 async def get_url_for_resource(
@@ -632,10 +629,7 @@ async def get_url_for_resource(
             f"/role/{account_id}?redirect=https://console.aws.amazon.com/codesuite/codebuild/"
             f"{account_id}/projects/{resource_name}/history?region={region}"
         )
-    elif (
-        resource_type == "AWS::CodePipeline::Pipeline"
-        or resource_type == "codepipeline"
-    ):
+    elif resource_type in ["AWS::CodePipeline::Pipeline", "codepipeline"]:
         url = (
             f"/role/{account_id}?redirect="
             "https://console.aws.amazon.com/codesuite/codepipeline/pipelines/"
@@ -805,7 +799,6 @@ async def get_url_for_resource(
             f"/role/{account_id}?redirect="
             f"https://console.aws.amazon.com/rds/home?region={region}%23db-snapshot:id={resource_name}"
         )
-    # TBD
     elif resource_type == "AWS::Redshift::Cluster":
         url = (
             f"/role/{account_id}?redirect="
@@ -878,8 +871,7 @@ async def get_aws_config_history_url_for_resource(
         f"resourceId={resource_id}&resourceName={resource_name}&resourceType={technology}"
     )
 
-    url = f"/role/{account_id}?redirect={encoded_redirect}"
-    return url
+    return f"/role/{account_id}?redirect={encoded_redirect}"
 
 
 async def get_conglomo_url_for_resource(

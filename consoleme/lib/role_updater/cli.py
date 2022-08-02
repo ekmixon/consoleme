@@ -22,8 +22,7 @@ def cli():
 def get_session_name():
     """Set a session name if running locally."""
     if platform.platform().lower().startswith("darwin"):
-        session_name = getpass.getuser()
-        return session_name
+        return getpass.getuser()
 
     return "roleupdater"
 

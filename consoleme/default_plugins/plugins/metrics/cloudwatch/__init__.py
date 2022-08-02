@@ -55,8 +55,11 @@ class CloudWatchMetric(Metric):
         dimensions = []
         if not tags:
             return dimensions
-        for name, value in tags.items():
-            dimensions.append({"Name": str(name), "Value": str(value)})
+        dimensions.extend(
+            {"Name": str(name), "Value": str(value)}
+            for name, value in tags.items()
+        )
+
         return dimensions
 
     def count(self, metric_name, tags=None):

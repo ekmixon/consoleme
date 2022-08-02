@@ -26,11 +26,9 @@ log = config.get_logger()
 
 async def populate_oidc_config():
     http_client = tornado.httpclient.AsyncHTTPClient()
-    metadata_url = config.get(
+    if metadata_url := config.get(
         "get_user_by_aws_alb_auth_settings.access_token_validation.metadata_url"
-    )
-
-    if metadata_url:
+    ):
         res = await http_client.fetch(
             metadata_url,
             method="GET",
@@ -40,16 +38,15 @@ async def populate_oidc_config():
             },
         )
         oidc_config = json.loads(res.body)
-    else:
-        jwks_uri = config.get(
-            "get_user_by_aws_alb_auth_settings.access_token_validation.jwks_uri"
-        )
-        if not jwks_uri:
-            raise MissingConfigurationValue("Missing OIDC Configuration.")
+    elif jwks_uri := config.get(
+        "get_user_by_aws_alb_auth_settings.access_token_validation.jwks_uri"
+    ):
         oidc_config = {
             "jwks_uri": jwks_uri,
         }
 
+    else:
+        raise MissingConfigurationValue("Missing OIDC Configuration.")
     # Fetch jwks_uri for jwt validation
     res = await http_client.fetch(
         oidc_config["jwks_uri"],
@@ -97,7 +94,7 @@ async def authenticate_user_by_alb_auth(request):
     decoded_json = json.loads(decoded_jwt_headers)
     kid = decoded_json["kid"]
     # Step 2: Get the public key from regional endpoint
-    url = "https://public-keys.auth.elb." + config.region + ".amazonaws.com/" + kid
+    url = f"https://public-keys.auth.elb.{config.region}.amazonaws.com/{kid}"
     req = requests.get(url)
     pub_key = req.text
     # Step 3: Get the payload

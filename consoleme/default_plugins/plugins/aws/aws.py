@@ -146,7 +146,6 @@ class Aws:
     async def _get_iam_user_async(
         account_id, user_name, conn
     ) -> Optional[Dict[str, Any]]:
-        tasks = []
         client = await sync_to_async(boto3_cached_conn)(
             "iam",
             account_number=account_id,
@@ -158,17 +157,18 @@ class Aws:
         user_details = asyncio.ensure_future(
             sync_to_async(client.get_user)(UserName=user_name)
         )
-        tasks.append(user_details)
-
+        tasks = [user_details]
         all_tasks = [
             get_user_managed_policies,
             get_user_inline_policies,
         ]
 
-        for t in all_tasks:
-            tasks.append(
-                asyncio.ensure_future(sync_to_async(t)({"UserName": user_name}, **conn))
+        tasks.extend(
+            asyncio.ensure_future(
+                sync_to_async(t)({"UserName": user_name}, **conn)
             )
+            for t in all_tasks
+        )
 
         user_tag_details = asyncio.ensure_future(
             sync_to_async(client.list_user_tags)(UserName=user_name)
@@ -184,9 +184,11 @@ class Aws:
         async_task_result = await responses
         user = async_task_result[0]["User"]
         user["ManagedPolicies"] = async_task_result[1]
-        inline_policies = []
-        for name, policy in async_task_result[2].items():
-            inline_policies.append({"PolicyName": name, "PolicyDocument": policy})
+        inline_policies = [
+            {"PolicyName": name, "PolicyDocument": policy}
+            for name, policy in async_task_result[2].items()
+        ]
+
         user["InlinePolicies"] = inline_policies
         user["Tags"] = async_task_result[3].get("Tags", [])
         user["Groups"] = async_task_result[4].get("Groups", [])
@@ -216,7 +218,6 @@ class Aws:
     async def _get_iam_role_async(
         account_id, role_name, conn
     ) -> Optional[Dict[str, Any]]:
-        tasks = []
         client = await sync_to_async(boto3_cached_conn)(
             "iam",
             account_number=account_id,
@@ -228,18 +229,19 @@ class Aws:
         role_details = asyncio.ensure_future(
             sync_to_async(client.get_role)(RoleName=role_name)
         )
-        tasks.append(role_details)
-
+        tasks = [role_details]
         all_tasks = [
             get_role_managed_policies,
             get_role_inline_policies,
             list_role_tags,
         ]
 
-        for t in all_tasks:
-            tasks.append(
-                asyncio.ensure_future(sync_to_async(t)({"RoleName": role_name}, **conn))
+        tasks.extend(
+            asyncio.ensure_future(
+                sync_to_async(t)({"RoleName": role_name}, **conn)
             )
+            for t in all_tasks
+        )
 
         responses = asyncio.gather(*tasks)
         async_task_result = await responses

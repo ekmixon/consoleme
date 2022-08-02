@@ -33,10 +33,11 @@ class AuthStack(cdk.NestedStack):
             self,
             "UserPoolDomain",
             cognito_domain=cognito.CognitoDomainOptions(
-                domain_prefix=APPLICATION_PREFIX + "-" + APPLICATION_SUFFIX
+                domain_prefix=f"{APPLICATION_PREFIX}-{APPLICATION_SUFFIX}"
             ),
             user_pool=cognito_user_pool,
         )
+
 
         cognito_admin_user = cr.AwsCustomResource(
             self,
@@ -51,7 +52,10 @@ class AuthStack(cdk.NestedStack):
                     "UserPoolId": cognito_user_pool.user_pool_id,
                     "Username": "consoleme_admin",
                     "UserAttributes": [
-                        {"Name": "email", "Value": "consoleme_admin@" + domain_name}
+                        {
+                            "Name": "email",
+                            "Value": f"consoleme_admin@{domain_name}",
+                        }
                     ],
                     "TemporaryPassword": ADMIN_TEMP_PASSWORD,
                 },
@@ -60,6 +64,7 @@ class AuthStack(cdk.NestedStack):
                 ),
             ),
         )
+
 
         cognito_admin_group = cr.AwsCustomResource(
             self,

@@ -57,7 +57,6 @@ class Config:
     @staticmethod
     def internal_functions(cfg=None):
         cfg = cfg or {}
-        pass
 
     @staticmethod
     def is_contractor(user):
@@ -67,12 +66,9 @@ class Config:
     def get_employee_photo_url(user):
         from consoleme.config import config
 
-        # Try to get a custom employee photo url by formatting a string provided through configuration
-
-        custom_employee_photo_url = config.get(
+        if custom_employee_photo_url := config.get(
             "get_employee_photo_url.custom_employee_url", ""
-        ).format(user=user)
-        if custom_employee_photo_url:
+        ).format(user=user):
             return custom_employee_photo_url
 
         # Fall back to Gravatar

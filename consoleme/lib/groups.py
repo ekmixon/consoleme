@@ -5,12 +5,12 @@ from consoleme.config import config
 
 def does_group_require_bg_check(group_info: Any) -> bool:
     seg_groups_requiring_bg_check = config.get("groups.require_bg_check")
-    if (
-        group_info.backgroundcheck_required
-        or group_info.name in seg_groups_requiring_bg_check
-    ):
-        return True
-    return False
+    return bool(
+        (
+            group_info.backgroundcheck_required
+            or group_info.name in seg_groups_requiring_bg_check
+        )
+    )
 
 
 def can_user_request_group_based_on_domain(user: str, group_info: Any) -> bool:
@@ -22,8 +22,8 @@ def can_user_request_group_based_on_domain(user: str, group_info: Any) -> bool:
 
 
 def get_group_url(group: str) -> str:
-    return "{}/accessui/group/{}".format(config.get("url"), group)
+    return f'{config.get("url")}/accessui/group/{group}'
 
 
 def get_accessui_group_url(group):
-    return "{}/groups/{}".format(config.get("accessui_url"), group)
+    return f'{config.get("accessui_url")}/groups/{group}'

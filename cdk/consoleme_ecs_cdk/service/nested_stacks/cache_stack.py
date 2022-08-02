@@ -24,10 +24,7 @@ class CacheStack(cdk.NestedStack):
 
         # Redis node
 
-        subnet_ids = []
-        for subnet in vpc.private_subnets:
-            subnet_ids.append(subnet.subnet_id)
-
+        subnet_ids = [subnet.subnet_id for subnet in vpc.private_subnets]
         redis_subnet_group = ec.CfnSubnetGroup(
             self,
             "RedisSubnetGroup",

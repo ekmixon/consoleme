@@ -2,6 +2,7 @@
 Defining constants and resolving variables through configuration file
 """
 
+
 import yaml
 
 config_yaml = yaml.load(open("config.yaml"), Loader=yaml.FullLoader)
@@ -12,7 +13,7 @@ BASE_NAME = "ConsoleMeECS"
 SPOKE_BASE_NAME = "ConsoleMeSpoke"
 MAIN_ACCOUNT_ID = config_yaml["main_account"]
 
-APPLICATION_PREFIX = "consoleme-" + domain_prefix
+APPLICATION_PREFIX = f"consoleme-{domain_prefix}"
 APPLICATION_SUFFIX = "secure".lower()
 HOSTED_ZONE_ID = config_yaml["hosted_zone_id"]
 HOSTED_ZONE_NAME = config_yaml["hosted_zone_name"]

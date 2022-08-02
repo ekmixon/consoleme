@@ -248,17 +248,20 @@ async def get_service(service_name: str, service_path: str, group: str) -> Resou
 
     # Change credential subject based on group domain
     credential_subjects = config.get("google.credential_subject")
-    credential_subject = None
-    for k, v in credential_subjects.items():
-        if k == group.split("@")[1]:
-            credential_subject = v
-            break
+    credential_subject = next(
+        (
+            v
+            for k, v in credential_subjects.items()
+            if k == group.split("@")[1]
+        ),
+        None,
+    )
 
     if not credential_subject:
         raise NoCredentialSubjectException(
-            "Error: Unable to find Google credential subject for domain {}. "
-            "{}".format(group.split("@")[1], config.get("ses.support_reference", ""))
+            f'Error: Unable to find Google credential subject for domain {group.split("@")[1]}. {config.get("ses.support_reference", "")}'
         )
+
 
     admin_delegated_credentials = admin_credentials.with_subject(credential_subject)
     service = await sync_to_async(googleapiclient.discovery.build)(
@@ -303,13 +306,15 @@ async def list_group_members(
 
 @sync_to_async
 def list_user_groups_call(service, user_email, page_token=None):
-    if page_token:
-        results = (
-            service.groups().list(userKey=user_email, pageToken=page_token).execute()
+    return (
+        (
+            service.groups()
+            .list(userKey=user_email, pageToken=page_token)
+            .execute()
         )
-    else:
-        results = service.groups().list(userKey=user_email).execute()
-    return results
+        if page_token
+        else service.groups().list(userKey=user_email).execute()
+    )
 
 
 async def get_group_memberships(user_email, dry_run=None, service=None):
@@ -324,14 +329,13 @@ async def get_group_memberships(user_email, dry_run=None, service=None):
     log.debug(log_data)
     if not service:
         service = await get_service("admin", "directory_v1", user_email)
-    groups = []
     if not dry_run:
+        groups = []
         try:
             page_token = None
             while True:
                 results = await list_user_groups_call(service, user_email, page_token)
-                for g in results.get("groups"):
-                    groups.append(g.get("email"))
+                groups.extend(g.get("email") for g in results.get("groups"))
                 page_token = results.get("nextPageToken")
                 if not page_token:
                     break
@@ -445,7 +449,7 @@ async def raise_if_bulk_add_disabled_and_no_request(
         return True
     if not request:
         raise BulkAddPrevented(error)
-    if not request["status"] == "approved":
+    if request["status"] != "approved":
         raise BulkAddPrevented(error)
 
 
@@ -531,9 +535,7 @@ async def api_add_user_to_group_or_raise(group_name, member_name, actor):
     try:
         await add_user_to_group(member_name, group_name, actor)
     except HttpError as e:
-        # Inconsistent GG API error - ignore failure for user already existing
-        if e.resp.reason == "duplicate":
-            pass
+        pass
     except UserAlreadyAMemberOfGroupException:
         pass
     except BulkAddPrevented:

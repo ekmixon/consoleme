@@ -127,29 +127,26 @@ async def validate_auth_token(user, ip, token):
         auth_token.get("valid_after"),
     )
 
-    token_details = {
+    return {
         "valid": crypto.verify(to_verify, auth_token.get("sig")),
         "user": auth_token.get("user"),
     }
 
-    return token_details
-
 
 def can_admin_all(user: str, user_groups: List[str]):
-    application_admin = config.get("application_admin")
-    if application_admin:
+    if application_admin := config.get("application_admin"):
         if user == application_admin or application_admin in user_groups:
             return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_admin", []),
-            *config.get("dynamic_config.groups.can_admin", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_admin", []),
+                *config.get("dynamic_config.groups.can_admin", []),
+            ],
+        )
+    )
 
 
 def can_create_roles(
@@ -158,40 +155,38 @@ def can_create_roles(
 ) -> bool:
     if can_admin_all(user, user_groups):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_create_roles", []),
-            *config.get("dynamic_config.groups.can_create_roles", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_create_roles", []),
+                *config.get("dynamic_config.groups.can_create_roles", []),
+            ],
+        )
+    )
 
 
 def can_admin_policies(user: str, user_groups: List[str]) -> bool:
     if can_admin_all(user, user_groups):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_admin_policies", []),
-            *config.get("dynamic_config.groups.can_admin_policies", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_admin_policies", []),
+                *config.get("dynamic_config.groups.can_admin_policies", []),
+            ],
+        )
+    )
 
 
 def can_delete_iam_principals_app(app_name):
-    if app_name in [
+    return app_name in [
         *config.get("groups.can_delete_roles_apps", []),
         *config.get("dynamic_config.groups.can_delete_roles_apps", []),
-    ]:
-        return True
-    return False
+    ]
 
 
 def can_delete_iam_principals(
@@ -200,20 +195,22 @@ def can_delete_iam_principals(
 ) -> bool:
     if can_admin_all(user, user_groups):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            # TODO: Officially deprecate groups.can_delete_roles config key
-            *config.get("groups.can_delete_roles", []),
-            # TODO: Officially deprecate dynamic_config.groups.can_delete_roles config key
-            *config.get("dynamic_config.groups.can_delete_roles", []),
-            *config.get("groups.can_delete_iam_principals", []),
-            *config.get("dynamic_config.groups.can_delete_iam_principals", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                # TODO: Officially deprecate groups.can_delete_roles config key
+                *config.get("groups.can_delete_roles", []),
+                # TODO: Officially deprecate dynamic_config.groups.can_delete_roles config key
+                *config.get("dynamic_config.groups.can_delete_roles", []),
+                *config.get("groups.can_delete_iam_principals", []),
+                *config.get(
+                    "dynamic_config.groups.can_delete_iam_principals", []
+                ),
+            ],
+        )
+    )
 
 
 def can_edit_dynamic_config(
@@ -222,16 +219,16 @@ def can_edit_dynamic_config(
 ) -> bool:
     if can_admin_all(user, user_groups):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_edit_config", []),
-            *config.get("dynamic_config.groups.can_edit_config", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_edit_config", []),
+                *config.get("dynamic_config.groups.can_edit_config", []),
+            ],
+        )
+    )
 
 
 def can_edit_attributes(
@@ -249,16 +246,16 @@ def can_edit_attributes(
         ],
     ):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_edit_attributes", []),
-            *config.get("dynamic_config.groups.can_edit_attributes", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_edit_attributes", []),
+                *config.get("dynamic_config.groups.can_edit_attributes", []),
+            ],
+        )
+    )
 
 
 def can_modify_members(
@@ -281,16 +278,16 @@ def can_modify_members(
     ):
         return True
 
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_modify_members", []),
-            *config.get("dynamic_config.groups.can_modify_members", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_modify_members", []),
+                *config.get("dynamic_config.groups.can_modify_members", []),
+            ],
+        )
+    )
 
 
 def can_edit_sensitive_attributes(
@@ -298,16 +295,18 @@ def can_edit_sensitive_attributes(
 ) -> bool:
     if can_admin_all(user, user_groups):
         return True
-    if is_in_group(
-        user,
-        user_groups,
-        [
-            *config.get("groups.can_edit_sensitive_attributes", []),
-            *config.get("dynamic_config.groups.can_edit_sensitive_attributes", []),
-        ],
-    ):
-        return True
-    return False
+    return bool(
+        is_in_group(
+            user,
+            user_groups,
+            [
+                *config.get("groups.can_edit_sensitive_attributes", []),
+                *config.get(
+                    "dynamic_config.groups.can_edit_sensitive_attributes", []
+                ),
+            ],
+        )
+    )
 
 
 def is_sensitive_attr(attribute):
@@ -318,13 +317,17 @@ def is_sensitive_attr(attribute):
         if attr.get("name") == attribute:
             return attr.get("sensitive", False)
 
-    for attr in [
-        *config.get("groups.attributes.list", []),
-        *config.get("dynamic_config.groups.attributes.list", []),
-    ]:
-        if attr.get("name") == attribute:
-            return attr.get("sensitive", False)
-    return False
+    return next(
+        (
+            attr.get("sensitive", False)
+            for attr in [
+                *config.get("groups.attributes.list", []),
+                *config.get("dynamic_config.groups.attributes.list", []),
+            ]
+            if attr.get("name") == attribute
+        ),
+        False,
+    )
 
 
 class Error(Exception):
@@ -386,7 +389,7 @@ def mk_jwks_validator(
             j_str = json.dumps(j)
             keys.append(jwt.algorithms.RSAAlgorithm.from_jwk(j_str))
         else:
-            raise UnsupportedKeyTypeError("Unsupported Key Type: %s" % j["kty"])
+            raise UnsupportedKeyTypeError(f'Unsupported Key Type: {j["kty"]}')
 
     validators = [mk_jwt_validator(k, header_cfg, payload_cfg) for k in keys]
 

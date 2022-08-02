@@ -117,16 +117,15 @@ class GroupMapping:
 
         if int(time.time()) > role_blob.get("expiration", 0):
             stats.count("get_roles_from_cache.role_cache_expired")
-            log.error("Role cache for {} has expired.".format(user))
+            log.error(f"Role cache for {user} has expired.")
             return []
 
         if role_blob.get("user") != user:
             stats.count("get_roles_from_cache.role_cache_user_invalid")
             log.error(
-                "Role cache user mismatch. Cache has: {}. User requested is {}".format(
-                    role_blob.get("user"), user
-                )
+                f'Role cache user mismatch. Cache has: {role_blob.get("user")}. User requested is {user}'
             )
+
             return []
         return role_blob.get("roles")
 
@@ -143,11 +142,11 @@ class GroupMapping:
         for r in role_arns:
             try:
                 account_id = r.split(":")[4]
-                account_friendlyname = friendly_names.get(account_id, "")
-                if account_friendlyname and isinstance(account_friendlyname, list):
-                    account_ids[account_id] = account_friendlyname[0]
-                elif account_friendlyname and isinstance(account_friendlyname, str):
-                    account_ids[account_id] = account_friendlyname
+                if account_friendlyname := friendly_names.get(account_id, ""):
+                    if isinstance(account_friendlyname, list):
+                        account_ids[account_id] = account_friendlyname[0]
+                    elif isinstance(account_friendlyname, str):
+                        account_ids[account_id] = account_friendlyname
             except Exception as e:
                 log.error(
                     {

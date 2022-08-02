@@ -104,7 +104,7 @@ class DynamicConfigApiHandler(BaseHandler):
                 )
             if (
                 existing_dynamic_config_sha256
-                and not existing_dynamic_config_sha256 == existing_sha256
+                and existing_dynamic_config_sha256 != existing_sha256
             ):
                 raise Exception(
                     "Dynamic configuration was updated by another user before your changes were processed. "

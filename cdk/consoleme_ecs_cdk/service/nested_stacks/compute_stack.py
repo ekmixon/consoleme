@@ -86,7 +86,7 @@ class ComputeStack(cdk.NestedStack):
             ),
             environment={
                 "SETUPTOOLS_USE_DISTUTILS": "stdlib",
-                "CONSOLEME_CONFIG_S3": "s3://" + s3_bucket_name + "/config.yaml",
+                "CONSOLEME_CONFIG_S3": f"s3://{s3_bucket_name}/config.yaml",
                 "EC2_REGION": self.region,
             },
             working_directory="/apps/consoleme",
@@ -96,6 +96,7 @@ class ComputeStack(cdk.NestedStack):
                 "python scripts/retrieve_or_decode_configuration.py; python consoleme/__main__.py",
             ],
         )
+
 
         consoleme_ecs_task_definition.add_container(
             "CeleryContainer",
@@ -107,7 +108,7 @@ class ComputeStack(cdk.NestedStack):
             ),
             environment={
                 "SETUPTOOLS_USE_DISTUTILS": "stdlib",
-                "CONSOLEME_CONFIG_S3": "s3://" + s3_bucket_name + "/config.yaml",
+                "CONSOLEME_CONFIG_S3": f"s3://{s3_bucket_name}/config.yaml",
                 "COLUMNS": "80",
                 "EC2_REGION": self.region,
             },
@@ -117,6 +118,7 @@ class ComputeStack(cdk.NestedStack):
                 "python scripts/retrieve_or_decode_configuration.py; python scripts/initialize_redis_oss.py; celery -A consoleme.celery_tasks.celery_tasks worker -l DEBUG -B -E --concurrency=8",
             ],
         )
+
 
         # ECS cluster
 

@@ -63,9 +63,10 @@ def cache_application_information():
     utilize your organization's CI/CD pipeline for this information.
     :return:
     """
-    apps_to_roles = {}
-    for k, v in config.get("application_settings", {}).items():
-        apps_to_roles[k] = v.get("roles", [])
+    apps_to_roles = {
+        k: v.get("roles", [])
+        for k, v in config.get("application_settings", {}).items()
+    }
 
     red.set(
         config.get("celery.apps_to_roles.redis_key", "APPS_TO_ROLES"),

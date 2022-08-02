@@ -43,8 +43,9 @@ group_mapping = get_plugin_by_name(
 
 class TornadoRequestHandler(tornado.web.RequestHandler):
     def get_request_ip(self):
-        trusted_remote_ip_header = config.get("auth.remote_ip.trusted_remote_ip_header")
-        if trusted_remote_ip_header:
+        if trusted_remote_ip_header := config.get(
+            "auth.remote_ip.trusted_remote_ip_header"
+        ):
             return self.request.headers[trusted_remote_ip_header].split(",")[0]
         return self.request.remote_ip
 
@@ -122,9 +123,7 @@ class BaseHandler(TornadoRequestHandler):
     """Default BaseHandler."""
 
     def log_exception(self, *args, **kwargs):
-        if args[0].__name__ == "SilentException":
-            pass
-        else:
+        if args[0].__name__ != "SilentException":
             super(BaseHandler, self).log_exception(*args, **kwargs)
 
     def write_error(self, status_code: int, **kwargs: Any) -> None:
@@ -204,9 +203,7 @@ class BaseHandler(TornadoRequestHandler):
             asyncio.ensure_future(self.tracer.disable_tracing())
 
         if config.get("_security_risk_full_debugging.enabled"):
-            responses = None
-            if hasattr(self, "responses"):
-                responses = self.responses
+            responses = self.responses if hasattr(self, "responses") else None
             request_details = {
                 "path": self.request.path,
                 "method": self.request.method,
@@ -239,9 +236,7 @@ class BaseHandler(TornadoRequestHandler):
         if not config.get("auth.get_user_by_password", False):
             return True
 
-        # force_use_sso indicates the user's intent to authenticate via SSO
-        force_use_sso = self.request.arguments.get("use_sso", [False])[0]
-        if force_use_sso:
+        if force_use_sso := self.request.arguments.get("use_sso", [False])[0]:
             return True
         # It's a redirect from an SSO provider. Let it hit the SSO functionality
         if (
@@ -249,9 +244,7 @@ class BaseHandler(TornadoRequestHandler):
             and "state" in self.request.query_arguments
         ):
             return True
-        if self.request.path == "/saml/acs":
-            return True
-        return False
+        return self.request.path == "/saml/acs"
 
     async def authorization_flow(
         self, user: str = None, console_only: bool = True, refresh_cache: bool = False
@@ -292,12 +285,9 @@ class BaseHandler(TornadoRequestHandler):
 
         # Check to see if user has a valid auth cookie
         if config.get("auth_cookie_name", "consoleme_auth"):
-            auth_cookie = self.get_cookie(
+            if auth_cookie := self.get_cookie(
                 config.get("auth_cookie_name", "consoleme_auth")
-            )
-
-            # Validate auth cookie and use it to retrieve group information
-            if auth_cookie:
+            ):
                 res = await validate_and_return_jwt_token(auth_cookie)
                 if res and isinstance(res, dict):
                     self.user = res.get("user")
@@ -311,63 +301,63 @@ class BaseHandler(TornadoRequestHandler):
             if config.get("development") and config.get("_development_groups_override"):
                 self.groups = config.get("_development_groups_override")
 
-        if not self.user:
-            # SAML flow. If user has a JWT signed by ConsoleMe, and SAML is enabled in configuration, user will go
-            # through this flow.
-
-            if config.get("auth.get_user_by_saml", False) and attempt_sso_authn:
-                res = await authenticate_user_by_saml(self)
-                if not res:
-                    if (
-                        self.request.uri != "/saml/acs"
-                        and not self.request.uri.startswith("/auth?")
-                    ):
-                        raise SilentException(
-                            "Unable to authenticate the user by SAML. "
-                            "Redirecting to authentication endpoint"
-                        )
-                    return
-
-        if not self.user:
-            if config.get("auth.get_user_by_oidc", False) and attempt_sso_authn:
-                res = await authenticate_user_by_oidc(self)
-                if not res:
+        if (
+            not self.user
+            and config.get("auth.get_user_by_saml", False)
+            and attempt_sso_authn
+        ):
+            res = await authenticate_user_by_saml(self)
+            if not res:
+                if (
+                    self.request.uri != "/saml/acs"
+                    and not self.request.uri.startswith("/auth?")
+                ):
                     raise SilentException(
-                        "Unable to authenticate the user by OIDC. "
+                        "Unable to authenticate the user by SAML. "
                         "Redirecting to authentication endpoint"
                     )
-                if res and isinstance(res, dict):
-                    self.user = res.get("user")
-                    self.groups = res.get("groups")
+                return
 
-        if not self.user:
-            if config.get("auth.get_user_by_aws_alb_auth", False):
-                res = await authenticate_user_by_alb_auth(self)
-                if not res:
-                    raise Exception("Unable to authenticate the user by ALB Auth")
-                if res and isinstance(res, dict):
-                    self.user = res.get("user")
-                    self.groups = res.get("groups")
-
-        if not self.user:
-            # Username/Password authn flow
-            if config.get("auth.get_user_by_password", False):
-                after_redirect_uri = self.request.arguments.get("redirect_url", [""])[0]
-                if after_redirect_uri and isinstance(after_redirect_uri, bytes):
-                    after_redirect_uri = after_redirect_uri.decode("utf-8")
-                self.set_status(403)
-                self.write(
-                    {
-                        "type": "redirect",
-                        "redirect_url": f"/login?redirect_after_auth={after_redirect_uri}",
-                        "reason": "unauthenticated",
-                        "message": "User is not authenticated. Redirect to authenticate",
-                    }
-                )
-                await self.finish()
+        if (
+            not self.user
+            and config.get("auth.get_user_by_oidc", False)
+            and attempt_sso_authn
+        ):
+            res = await authenticate_user_by_oidc(self)
+            if not res:
                 raise SilentException(
-                    "Redirecting user to authenticate by username/password."
+                    "Unable to authenticate the user by OIDC. "
+                    "Redirecting to authentication endpoint"
                 )
+            if isinstance(res, dict):
+                self.user = res.get("user")
+                self.groups = res.get("groups")
+
+        if not self.user and config.get("auth.get_user_by_aws_alb_auth", False):
+            res = await authenticate_user_by_alb_auth(self)
+            if not res:
+                raise Exception("Unable to authenticate the user by ALB Auth")
+            if isinstance(res, dict):
+                self.user = res.get("user")
+                self.groups = res.get("groups")
+
+        if not self.user and config.get("auth.get_user_by_password", False):
+            after_redirect_uri = self.request.arguments.get("redirect_url", [""])[0]
+            if after_redirect_uri and isinstance(after_redirect_uri, bytes):
+                after_redirect_uri = after_redirect_uri.decode("utf-8")
+            self.set_status(403)
+            self.write(
+                {
+                    "type": "redirect",
+                    "redirect_url": f"/login?redirect_after_auth={after_redirect_uri}",
+                    "reason": "unauthenticated",
+                    "message": "User is not authenticated. Redirect to authenticate",
+                }
+            )
+            await self.finish()
+            raise SilentException(
+                "Redirecting user to authenticate by username/password."
+            )
 
         if not self.user:
             try:

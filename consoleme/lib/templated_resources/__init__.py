@@ -67,15 +67,18 @@ async def retrieve_cached_resource_templates(
     )
     templated_file_array = TemplatedFileModelArray.parse_obj(templated_resource_data_d)
     for template_file in templated_file_array.templated_resources:
-        if resource_type and not template_file.resource_type == resource_type:
+        if resource_type and template_file.resource_type != resource_type:
             continue
-        if resource and not template_file.resource == resource:
+        if resource and template_file.resource != resource:
             continue
-        if repository_name and not template_file.repository_name == repository_name:
+        if (
+            repository_name
+            and template_file.repository_name != repository_name
+        ):
             continue
         if (
             template_language
-            and not template_file.template_language == template_language
+            and template_file.template_language != template_language
         ):
             continue
         if return_first_result:
@@ -116,7 +119,7 @@ async def cache_resource_templates_for_repository(
             web_path = repository.get("web_path", "").format(
                 relative_path=relative_path
             )
-            full_temporary_file_path = tempdir + "/" + filepath
+            full_temporary_file_path = f"{tempdir}/{filepath}"
             if "honeybee" in resource_formats:
                 for resource_type, conditions in repository["resource_type_parser"][
                     "honeybee"
@@ -165,23 +168,26 @@ async def cache_resource_templates_for_repository(
                         if exclude_accounts:
                             for exclude_account in exclude_accounts:
                                 for account in accounts_set:
-                                    if fnmatch.fnmatch(account, exclude_account):
-                                        if account not in included_accounts_set:
-                                            continue
+                                    if (
+                                        fnmatch.fnmatch(
+                                            account, exclude_account
+                                        )
+                                        and account in included_accounts_set
+                                    ):
                                         included_accounts_set.remove(account)
 
                         if condition.get("file_content"):
-                            should_ignore_file = False
                             body_should_include = condition["file_content"].get(
                                 "includes", []
                             )
                             body_should_exclude = condition["file_content"].get(
                                 "excludes", []
                             )
-                            for include in body_should_include:
-                                if include not in file_content:
-                                    should_ignore_file = True
-                                    break
+                            should_ignore_file = any(
+                                include not in file_content
+                                for include in body_should_include
+                            )
+
                             for exclude in body_should_exclude:
                                 if exclude in file_content:
                                     should_ignore_file = True

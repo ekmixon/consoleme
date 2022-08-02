@@ -17,7 +17,7 @@ class ConsolemeSpokeAccountsStack(cdk.Stack):
     def __init__(self, scope: cdk.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        trusted_role_arn = "arn:aws:iam::" + MAIN_ACCOUNT_ID + ":role/ConsoleMeTaskRole"
+        trusted_role_arn = f"arn:aws:iam::{MAIN_ACCOUNT_ID}:role/ConsoleMeTaskRole"
 
         spoke_role = iam.Role(
             self,

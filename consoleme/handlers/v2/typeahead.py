@@ -47,7 +47,7 @@ class ResourceTypeAheadHandlerV2(BaseAPIV2Handler):
         try:
             limit: int = self.request.arguments.get("limit")[0].decode("utf-8")
             if limit:
-                limit = int(limit)
+                limit = limit
         except TypeError:
             limit = 20
 
@@ -123,8 +123,7 @@ class SelfServiceStep1ResourceTypeahead(BaseAPIV2Handler):
             limit_raw: str = self.request.arguments.get("limit")[0].decode("utf-8")
             if limit_raw:
                 limit = int(limit_raw)
-            if limit > max_limit:
-                limit = max_limit
+            limit = min(limit, max_limit)
         except TypeError:
             pass
 

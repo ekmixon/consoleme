@@ -30,5 +30,4 @@ class BitBucket:
             commit_title,
             commit_message,
         )
-        pull_request_url = pull_request["links"]["self"][0]["href"]
-        return pull_request_url
+        return pull_request["links"]["self"][0]["href"]

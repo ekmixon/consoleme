@@ -45,7 +45,7 @@ async def duo_mfa_user(username, message="ConsoleMe Authorization Request"):
             # We had an error so we should deny this request
             return False
 
-        log_data["message"] = "Duo MFA request sent to {}".format(username)
+        log_data["message"] = f"Duo MFA request sent to {username}"
 
         log.info(log_data)
 

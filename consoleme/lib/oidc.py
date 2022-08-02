@@ -23,9 +23,7 @@ log = config.get_logger()
 
 async def populate_oidc_config():
     http_client = tornado.httpclient.AsyncHTTPClient()
-    metadata_url = config.get("get_user_by_oidc_settings.metadata_url")
-
-    if metadata_url:
+    if metadata_url := config.get("get_user_by_oidc_settings.metadata_url"):
         res = await http_client.fetch(
             metadata_url,
             method="GET",

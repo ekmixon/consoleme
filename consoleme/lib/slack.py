@@ -20,9 +20,11 @@ def slack_preflight_check(func):
         return None
 
     def wrapper(*args, **kwargs):
-        if not config.get("slack.notifications_enabled", False):
-            return shortcircuit()
-        return func(*args, **kwargs)
+        return (
+            func(*args, **kwargs)
+            if config.get("slack.notifications_enabled", False)
+            else shortcircuit()
+        )
 
     return wrapper
 
@@ -106,7 +108,7 @@ async def _build_policy_payload(
     elif approval_probe_approved:
         pre_text += " and auto-approved by auto-approval probe"
 
-    payload = {
+    return {
         "blocks": [
             {
                 "type": "section",
@@ -144,4 +146,3 @@ async def _build_policy_payload(
             },
         ]
     }
-    return payload

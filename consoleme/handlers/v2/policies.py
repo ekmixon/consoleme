@@ -134,7 +134,7 @@ class PoliciesHandler(BaseAPIV2Handler):
 
         if markdown:
             policies_to_write = []
-            for policy in policies[0:limit]:
+            for policy in policies[:limit]:
                 resource_name = policy.get("arn").split(":")[5]
                 if "/" in resource_name:
                     resource_name = resource_name.split("/")[-1]
@@ -153,13 +153,12 @@ class PoliciesHandler(BaseAPIV2Handler):
                     policy["arn"] = f"[{policy['arn']}]({url})"
                 if not policy.get("templated"):
                     policy["templated"] = "N/A"
-                else:
-                    if "/" in policy["templated"]:
-                        link_name = policy["templated"].split("/")[-1]
-                        policy["templated"] = f"[{link_name}]({policy['templated']})"
+                elif "/" in policy["templated"]:
+                    link_name = policy["templated"].split("/")[-1]
+                    policy["templated"] = f"[{link_name}]({policy['templated']})"
                 policies_to_write.append(policy)
         else:
-            policies_to_write = policies[0:limit]
+            policies_to_write = policies[:limit]
         filtered_count = len(policies_to_write)
         res = DataTableResponse(
             totalCount=total_count, filteredCount=filtered_count, data=policies_to_write

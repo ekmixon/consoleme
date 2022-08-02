@@ -212,8 +212,7 @@ async def _generate_s3_inline_policy_statement_from_mapping(
 
         resource_arns.append(f"{arn}{generator.bucket_prefix}")
 
-    for action in generator.action_groups:
-        action_group_actions.append(action)
+    action_group_actions.extend(iter(generator.action_groups))
     actions = await _get_actions_from_groups(action_group_actions, permissions_map)
     if generator.extra_actions:
         actions.extend(generator.extra_actions)
@@ -261,13 +260,7 @@ async def _generate_inline_policy_statement_from_mapping(
     resource_arns = generator.resource_arn
     effect = generator.effect
 
-    for action in generator.action_groups:
-        # TODO: Seems like a datamodel bug when we don't have a enum defined for an array type, but I need to access
-        # this as a string sometimes
-        if isinstance(action, str):
-            action_group_actions.append(action)
-        else:
-            action_group_actions.append(action)
+    action_group_actions.extend(iter(generator.action_groups))
     actions = await _get_actions_from_groups(action_group_actions, permissions_map)
     if generator.extra_actions:
         actions.extend(generator.extra_actions)
@@ -396,7 +389,6 @@ async def generate_change_model_array(
     :return: ChangeModelArray
     """
 
-    change_models = []
     inline_iam_policy_statements: List[Dict] = []
     primary_principal = None
     primary_user = None
@@ -469,5 +461,5 @@ async def generate_change_model_array(
     inline_iam_policy_change_model = await _generate_inline_policy_change_model(
         primary_principal, resources, inline_iam_policy_statements, primary_user
     )
-    change_models.append(inline_iam_policy_change_model)
+    change_models = [inline_iam_policy_change_model]
     return ChangeModelArray.parse_obj({"changes": change_models})

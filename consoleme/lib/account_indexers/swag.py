@@ -22,7 +22,7 @@ async def retrieve_accounts_from_swag() -> CloudAccountModelArray:
     swag_base_url = config.get("retrieve_accounts_from_swag.base_url")
     if not swag_base_url:
         raise MissingConfigurationValue("Unable to find Swag URL in configuration")
-    swag_url = swag_base_url + "api/1/accounts"
+    swag_url = f"{swag_base_url}api/1/accounts"
 
     try:
         http_client = AsyncHTTPClient(force_instance=True)

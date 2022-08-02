@@ -44,9 +44,7 @@ async def is_object_older_than_seconds(
             return True
         raise
     datetime_value = res["LastModified"]
-    if (now - datetime_value).total_seconds() > older_than_seconds:
-        return True
-    return False
+    return (now - datetime_value).total_seconds() > older_than_seconds
 
 
 async def does_object_exist(bucket: str, key: str, s3_client=None) -> bool:
@@ -107,8 +105,7 @@ async def fetch_json_object_from_s3(
     """
     s3_object = await get_object_async(Bucket=bucket, Key=object, region=config.region)
     object_content = s3_object["Body"].read()
-    data = json.loads(object_content)
-    return data
+    return json.loads(object_content)
 
 
 def map_operation_to_api(operation, default):

@@ -35,12 +35,7 @@ async def can_cancel_request(current_user, requesting_user, groups):
     if can_admin_all(current_user, groups):
         return True
 
-    # Allow restricted admins to cancel requests
-    for g in config.get("groups.can_admin_restricted"):
-        if g in groups:
-            return True
-
-    return False
+    return any(g in groups for g in config.get("groups.can_admin_restricted"))
 
 
 async def can_move_back_to_pending(current_user, request, groups):
@@ -48,9 +43,7 @@ async def can_move_back_to_pending(current_user, request, groups):
     if request.get("last_updated", 0) < int(time.time()) - 86400:
         return False
     # Allow admins to return requests back to pending state
-    if can_admin_all(current_user, groups):
-        return True
-    return False
+    return bool(can_admin_all(current_user, groups))
 
 
 async def get_request_by_id(user, request_id):
@@ -99,18 +92,12 @@ async def get_all_pending_requests_api(user):
 
 async def get_app_pending_requests_policies(user):
     dynamo_handler = UserDynamoHandler(user)
-    all_policy_requests = await dynamo_handler.get_all_policy_requests(status="pending")
-    if not all_policy_requests:
-        all_policy_requests = []
-    return all_policy_requests
+    return await dynamo_handler.get_all_policy_requests(status="pending") or []
 
 
 async def get_all_policy_requests(user, status=None):
     dynamo_handler = UserDynamoHandler(user)
-    all_policy_requests = await dynamo_handler.get_all_policy_requests(status=status)
-    if not all_policy_requests:
-        all_policy_requests = []
-    return all_policy_requests
+    return await dynamo_handler.get_all_policy_requests(status=status) or []
 
 
 async def cache_all_policy_requests(
@@ -119,19 +106,21 @@ async def cache_all_policy_requests(
 
     if not redis_key:
         redis_key = config.get("cache_policy_requests.redis_key", "ALL_POLICY_REQUESTS")
-    if not s3_bucket and not s3_key:
-        if config.region == config.get(
-            "celery.active_region", config.region
-        ) or config.get("environment") in ["dev", "test"]:
-            s3_bucket = config.get("cache_policy_requests.s3.bucket")
-            s3_key = config.get(
-                "cache_policy_requests.s3.file",
-                "policy_requests/all_policy_requests_v1.json.gz",
-            )
+    if (
+        not s3_bucket
+        and not s3_key
+        and (
+            config.region == config.get("celery.active_region", config.region)
+            or config.get("environment") in ["dev", "test"]
+        )
+    ):
+        s3_bucket = config.get("cache_policy_requests.s3.bucket")
+        s3_key = config.get(
+            "cache_policy_requests.s3.file",
+            "policy_requests/all_policy_requests_v1.json.gz",
+        )
     requests = await get_all_policy_requests(user)
-    requests_to_cache = []
-    for request in requests:
-        requests_to_cache.append(request)
+    requests_to_cache = list(requests)
     requests_to_cache = sorted(
         requests_to_cache, key=lambda i: i.get("request_time", 0), reverse=True
     )

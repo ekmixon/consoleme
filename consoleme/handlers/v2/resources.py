@@ -35,11 +35,13 @@ class ResourceDetailHandler(BaseAPIV2Handler):
     async def get(self, account_id, resource_type, region=None, resource_name=None):
         if not self.user:
             return
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
+        if (
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
+        ):
+            raise MustBeFte("Only FTEs are authorized to view this page.")
         read_only = False
 
         can_save_delete = (can_admin_policies(self.user, self.groups),)
@@ -96,7 +98,7 @@ class ResourceDetailHandler(BaseAPIV2Handler):
             return
 
         # TODO: Get S3 errors for s3 buckets only, else CT errors
-        yesterday = (datetime.today() - timedelta(days=1)).strftime("%Y%m%d")
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
         s3_query_url = None
         if resource_type == "s3":
             s3_query_url = config.get("s3.bucket_query_url")
@@ -108,10 +110,7 @@ class ResourceDetailHandler(BaseAPIV2Handler):
             s3_error_topic = config.get("redis.s3_errors", "S3_ERRORS")
             all_s3_errors = self.red.get(s3_error_topic)
 
-        s3_errors = []
-        if all_s3_errors:
-            s3_errors = json.loads(all_s3_errors).get(arn, [])
-
+        s3_errors = json.loads(all_s3_errors).get(arn, []) if all_s3_errors else []
         account_ids_to_name = await get_account_id_to_name_mapping()
         # TODO(ccastrapel/psanders): Make a Swagger spec for this
         self.write(

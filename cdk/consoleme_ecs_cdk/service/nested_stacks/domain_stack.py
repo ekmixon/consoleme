@@ -95,21 +95,23 @@ class DomainStack(cdk.NestedStack):
                 action="verifyDomainDkim",
                 parameters={"Domain": route53_record.domain_name},
                 physical_resource_id=cr.PhysicalResourceId.of(
-                    HOSTED_ZONE_ID + "VerifyDomainDKIM"
+                    f"{HOSTED_ZONE_ID}VerifyDomainDKIM"
                 ),
             ),
             install_latest_aws_sdk=True,
             log_retention=logs.RetentionDays.ONE_WEEK,
         )
 
+
         add_ses_dkim.node.add_dependency(verify_ses_identity)
 
         certificate = acm.Certificate(
             self,
             "Certificate",
-            domain_name="*." + hosted_zone.zone_name,
+            domain_name=f"*.{hosted_zone.zone_name}",
             validation=acm.CertificateValidation.from_dns(hosted_zone=hosted_zone),
         )
+
 
         self.hosted_zone = hosted_zone
         self.certificate = certificate

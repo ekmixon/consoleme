@@ -186,14 +186,12 @@ class CredentialAuthorizationMapping(metaclass=Singleton):
     async def determine_users_authorized_roles(self, user, groups, include_cli=False):
         authorization_mapping = await self.retrieve_credential_authorization_mapping()
         authorized_roles = set()
-        user_mapping = authorization_mapping.get(user, [])
-        if user_mapping:
+        if user_mapping := authorization_mapping.get(user, []):
             authorized_roles.update(user_mapping.authorized_roles)
             if include_cli:
                 authorized_roles.update(user_mapping.authorized_roles_cli_only)
         for group in groups:
-            group_mapping = authorization_mapping.get(group, [])
-            if group_mapping:
+            if group_mapping := authorization_mapping.get(group, []):
                 authorized_roles.update(group_mapping.authorized_roles)
                 if include_cli:
                     authorized_roles.update(group_mapping.authorized_roles_cli_only)

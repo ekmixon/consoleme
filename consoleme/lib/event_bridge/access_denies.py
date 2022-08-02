@@ -27,12 +27,11 @@ async def get_resource_from_cloudtrail_deny(ct_event, raw_ct_event):
     Cloudtrail message, we return `*`.
     """
 
-    resources = [
+    if resources := [
         resource["ARN"]
         for resource in raw_ct_event.get("resources", [])
         if "ARN" in resource
-    ]
-    if resources:
+    ]:
         resource: str = max(resources, key=len)
         return resource
     resource = "*"
@@ -65,7 +64,7 @@ async def generate_policy_from_cloudtrail_deny(ct_event):
     ]:
         return None
 
-    policy = {
+    return {
         "Statement": [
             {
                 "Action": [ct_event["event_call"]],
@@ -75,7 +74,6 @@ async def generate_policy_from_cloudtrail_deny(ct_event):
         ],
         "Version": "2012-10-17",
     }
-    return policy
 
 
 async def detect_cloudtrail_denies_and_update_cache(

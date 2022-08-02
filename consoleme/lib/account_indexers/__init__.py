@@ -37,10 +37,10 @@ async def cache_cloud_accounts() -> CloudAccountModelArray:
     if not account_mapping or not account_mapping.accounts:
         account_mapping = await retrieve_current_account()
 
-    account_id_to_name = {}
+    account_id_to_name = {
+        account.id: account.name for account in account_mapping.accounts
+    }
 
-    for account in account_mapping.accounts:
-        account_id_to_name[account.id] = account.name
 
     redis_key = config.get(
         "cache_cloud_accounts.redis.key.all_accounts_key", "ALL_AWS_ACCOUNTS"

@@ -52,11 +52,9 @@ def detect_role_changes_and_update_cache(celery_app):
     if not queue_url:
         raise DataNotRetrievable(f"Unable to retrieve Queue URL for {queue_arn}")
     roles_to_update = set()
-    messages = sqs_client.receive_message(
+    while messages := sqs_client.receive_message(
         QueueUrl=queue_url, MaxNumberOfMessages=10
-    ).get("Messages", [])
-
-    while messages:
+    ).get("Messages", []):
         processed_messages = []
         for message in messages:
             try:
@@ -101,9 +99,6 @@ def detect_role_changes_and_update_cache(celery_app):
                 }
             )
         sqs_client.delete_message_batch(QueueUrl=queue_url, Entries=processed_messages)
-        messages = sqs_client.receive_message(
-            QueueUrl=queue_url, MaxNumberOfMessages=10
-        ).get("Messages", [])
     log.debug(
         {
             **log_data,

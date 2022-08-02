@@ -144,7 +144,7 @@ class BaseDynamoHandler:
         else:
             if isinstance(obj, Binary):
                 return obj
-            if str(obj) == "":
+            if not str(obj):
                 obj = DYNAMO_EMPTY_STRING
             elif type(obj) in [float, int]:
                 obj = Decimal(str(obj))
@@ -315,10 +315,12 @@ class UserDynamoHandler(BaseDynamoHandler):
             current_config = self.dynamic_config.get_item(Key={"id": "master"})
             if not current_config:
                 return c
-            compressed_config = current_config.get("Item", {}).get("config", "")
-            if not compressed_config:
+            if compressed_config := current_config.get("Item", {}).get(
+                "config", ""
+            ):
+                c = zlib.decompress(compressed_config.value)
+            else:
                 return c
-            c = zlib.decompress(compressed_config.value)
         except Exception:  # noqa
             sentry_sdk.capture_exception()
         return c
@@ -333,8 +335,7 @@ class UserDynamoHandler(BaseDynamoHandler):
             current_config_yaml = self.get_dynamic_config_yaml_sync()
         else:
             current_config_yaml = asyncio.run(self.get_dynamic_config_yaml())
-        config_d = yaml.safe_load(current_config_yaml)
-        return config_d
+        return yaml.safe_load(current_config_yaml)
 
     async def get_all_api_health_alerts(self) -> list:
         """Return all requests. If a status is specified, only requests with the specified status will be returned.
@@ -396,15 +397,8 @@ class UserDynamoHandler(BaseDynamoHandler):
         )
 
         # enrich request
-        if update_by:
-            request["updated_by"] = update_by
-        else:
-            request["updated_by"] = user_email
-        if last_updated:
-            request["last_updated"] = last_updated
-        else:
-            request["last_updated"] = int(time.time())
-
+        request["updated_by"] = update_by or user_email
+        request["last_updated"] = last_updated or int(time.time())
         try:
             await sync_to_async(self.api_health_roles_table.put_item)(
                 Item=self._data_to_dynamo_replace(request)
@@ -596,7 +590,7 @@ class UserDynamoHandler(BaseDynamoHandler):
         # Remove this function and calls to this function after a grace period of
         changed = False
         for request in requests:
-            if not request.get("version") in ["2"]:
+            if request.get("version") not in ["2"]:
                 continue
             if request.get("extended_request") and not request.get("principal"):
                 principal_arn = request.pop("arn")
@@ -617,7 +611,7 @@ class UserDynamoHandler(BaseDynamoHandler):
             for change in changes:
                 if not change.get("principal_arn"):
                     continue
-                if not change.get("version") in ["2.0", "2", 2]:
+                if change.get("version") not in ["2.0", "2", 2]:
                     continue
                 change["principal"] = {
                     "principal_arn": change["principal_arn"],
@@ -647,9 +641,7 @@ class UserDynamoHandler(BaseDynamoHandler):
 
         return_value = []
         if status:
-            for item in requests:
-                if status and item["status"] == status:
-                    return_value.append(item)
+            return_value.extend(item for item in requests if item["status"] == status)
         else:
             return_value = requests
 
@@ -879,14 +871,8 @@ class UserDynamoHandler(BaseDynamoHandler):
             ExpressionAttributeValues={":un": user_email},
         )
 
-        items = []
-
-        if user and "Items" in user:
-            items = user["Items"]
-
-        if not items:
-            return self.create_user(user_email)
-        return items[0]
+        items = user["Items"] if user and "Items" in user else []
+        return items[0] if items else self.create_user(user_email)
 
     def resolve_request_ids(
         self, request_ids: List[str]
@@ -898,13 +884,12 @@ class UserDynamoHandler(BaseDynamoHandler):
                 ExpressionAttributeValues={":ri": request_id},
             )
 
-            if request["Items"]:
-                items = self._data_from_dynamo_replace(request["Items"])
-                requests.append(items[0])
-            else:
+            if not request["Items"]:
                 raise NoMatchingRequest(
                     f"No matching request for request_id: {request_id}"
                 )
+            items = self._data_from_dynamo_replace(request["Items"])
+            requests.append(items[0])
         return requests
 
     def add_request_id_to_user(
@@ -1025,10 +1010,7 @@ class UserDynamoHandler(BaseDynamoHandler):
         return_value = []
         if status:
             for item in items:
-                new_json = []
-                for j in item["json"]:
-                    if j["status"] == status:
-                        new_json.append(j)
+                new_json = [j for j in item["json"] if j["status"] == status]
                 item["json"] = new_json
                 if new_json:
                     return_value.append(item)
@@ -1104,35 +1086,33 @@ class UserDynamoHandler(BaseDynamoHandler):
             raise Exception(
                 "You must provide `updated_by` to change a request status to approved."
             )
-        existing_requests = self.get_requests_by_user(user_email)
-        if existing_requests:
-            updated = False
-            for request in existing_requests:
-                if request["group"] == group:
-                    request["updated_by"] = updated_by
-                    request["status"] = new_status
-                    request["last_updated"] = timestamp
-                    request["reviewer_comments"] = reviewer_comments
-                    modified_request = request
-                    try:
-                        self.requests_table.put_item(
-                            Item=self._data_to_dynamo_replace(request)
-                        )
-                    except Exception as e:
-                        error = f"Unable to add user request: {request}: {str(e)}"
-                        log.error(error, exc_info=True)
-                        raise Exception(error)
-                    updated = True
-
-            if not updated:
-                raise NoExistingRequest(
-                    f"Unable to find existing request for user: {user_email} and group: {group}."
-                )
-        else:
+        if not (existing_requests := self.get_requests_by_user(user_email)):
             raise NoExistingRequest(
                 f"Unable to find existing requests for user: {user_email}"
             )
 
+        updated = False
+        for request in existing_requests:
+            if request["group"] == group:
+                request["updated_by"] = updated_by
+                request["status"] = new_status
+                request["last_updated"] = timestamp
+                request["reviewer_comments"] = reviewer_comments
+                modified_request = request
+                try:
+                    self.requests_table.put_item(
+                        Item=self._data_to_dynamo_replace(request)
+                    )
+                except Exception as e:
+                    error = f"Unable to add user request: {request}: {str(e)}"
+                    log.error(error, exc_info=True)
+                    raise Exception(error)
+                updated = True
+
+        if not updated:
+            raise NoExistingRequest(
+                f"Unable to find existing request for user: {user_email} and group: {group}."
+            )
         return modified_request
 
     def change_request_status_by_id(
@@ -1262,16 +1242,13 @@ class UserDynamoHandler(BaseDynamoHandler):
                 )
             aggregated_errors[event_string]["count"] += 1
 
-        top_n_errors = {
-            k: v
-            for k, v in sorted(
+        return dict(
+            sorted(
                 aggregated_errors.items(),
                 key=lambda item: item[1]["count"],
                 reverse=True,
             )[:n]
-        }
-
-        return top_n_errors
+        )
 
     def count_arn_errors(self, error_count, items):
         for item in items:

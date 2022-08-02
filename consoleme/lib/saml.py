@@ -22,8 +22,9 @@ async def init_saml_auth(request):
     saml_config = copy.deepcopy(
         config.get("get_user_by_saml_settings.saml_settings", {})
     )
-    idp_metadata_url = config.get("get_user_by_saml_settings.idp_metadata_url")
-    if idp_metadata_url:
+    if idp_metadata_url := config.get(
+        "get_user_by_saml_settings.idp_metadata_url"
+    ):
         idp_metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(idp_metadata_url)
         saml_config = dict_merge(saml_config, idp_metadata)
     auth = await sync_to_async(OneLogin_Saml2_Auth)(
@@ -35,10 +36,12 @@ async def init_saml_auth(request):
 
 
 async def prepare_tornado_request_for_saml(request):
-    dataDict = {}
+    dataDict = {
+        key: request.arguments[key][0].decode("utf-8")
+        for key in request.arguments
+    }
 
-    for key in request.arguments:
-        dataDict[key] = request.arguments[key][0].decode("utf-8")
+
     redirect_uri = dataDict.get("redirect_url")
     redirect_path = request.path
     redirect_port = tornado.httputil.split_host_and_port(request.host)[1]
@@ -46,7 +49,7 @@ async def prepare_tornado_request_for_saml(request):
         parsed_redirect_uri = furl(redirect_uri)
         redirect_path = parsed_redirect_uri.pathstr
         redirect_port = parsed_redirect_uri.port
-    result = {
+    return {
         "https": "on" if request == "https" else "off",
         "http_host": tornado.httputil.split_host_and_port(request.host)[0],
         "script_name": redirect_path,
@@ -55,7 +58,6 @@ async def prepare_tornado_request_for_saml(request):
         "post_data": dataDict,
         "query_string": request.query,
     }
-    return result
 
 
 async def authenticate_user_by_saml(request):
@@ -70,18 +72,17 @@ async def authenticate_user_by_saml(request):
         log.error(log_data)
         if force_redirect:
             return request.redirect(saml_auth.login())
-        else:
-            request.set_status(403)
-            request.write(
-                {
-                    "type": "redirect",
-                    "redirect_url": saml_auth.login(),
-                    "reason": "unauthenticated",
-                    "message": "User is not authenticated. Redirect to authenticate",
-                }
-            )
-            request.finish()
-            return
+        request.set_status(403)
+        request.write(
+            {
+                "type": "redirect",
+                "redirect_url": saml_auth.login(),
+                "reason": "unauthenticated",
+                "message": "User is not authenticated. Redirect to authenticate",
+            }
+        )
+        request.finish()
+        return
 
     saml_errors = await sync_to_async(saml_auth.get_errors)()
     if saml_errors:
@@ -94,15 +95,14 @@ async def authenticate_user_by_saml(request):
     if not_auth_warn:
         if force_redirect:
             return request.redirect(saml_auth.login())
-        else:
-            request.set_status(403)
-            request.write(
-                {
-                    "type": "redirect",
-                    "redirect_url": saml_auth.login(),
-                    "reason": "unauthenticated",
-                    "message": "User is not authenticated. Redirect to authenticate",
-                }
-            )
-            request.finish()
-            return
+        request.set_status(403)
+        request.write(
+            {
+                "type": "redirect",
+                "redirect_url": saml_auth.login(),
+                "reason": "unauthenticated",
+                "message": "User is not authenticated. Redirect to authenticate",
+            }
+        )
+        request.finish()
+        return

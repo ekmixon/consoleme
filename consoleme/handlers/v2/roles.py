@@ -253,7 +253,7 @@ class RolesHandler(BaseAPIV2Handler):
                 f"{log_data['function']}.validation_exception", tags={"user": self.user}
             )
             sentry_sdk.capture_exception()
-            self.write_error(400, message="Error validating input: " + str(e))
+            self.write_error(400, message=f"Error validating input: {str(e)}")
             return
 
         try:
@@ -273,7 +273,7 @@ class RolesHandler(BaseAPIV2Handler):
                 },
             )
             sentry_sdk.capture_exception()
-            self.write_error(500, message="Exception occurred cloning role: " + str(e))
+            self.write_error(500, message=f"Exception occurred cloning role: {str(e)}")
             return
 
         # if here, role has been successfully cloned
@@ -360,9 +360,10 @@ class RoleDetailHandler(BaseAPIV2Handler):
             role_details = None
             error = str(e)
 
-        if role_details:
-            if not allowed_to_sync_role(role_details.arn, role_details.tags):
-                role_details = None
+        if role_details and not allowed_to_sync_role(
+            role_details.arn, role_details.tags
+        ):
+            role_details = None
 
         if not role_details:
             self.send_error(
@@ -438,7 +439,7 @@ class RoleDetailHandler(BaseAPIV2Handler):
                     "ip": self.ip,
                 },
             )
-            self.write_error(500, message="Error occurred deleting role: " + str(e))
+            self.write_error(500, message=f"Error occurred deleting role: {str(e)}")
             return
 
         # if here, role has been successfully deleted
@@ -519,7 +520,7 @@ class RoleDetailAppHandler(BaseMtlsHandler):
                     "authorized": can_delete_role,
                 },
             )
-            self.write_error(500, message="Error occurred deleting role: " + str(e))
+            self.write_error(500, message=f"Error occurred deleting role: {str(e)}")
             return
 
         # if here, role has been successfully deleted
@@ -619,7 +620,7 @@ class RoleCloneHandler(BaseAPIV2Handler):
                 f"{log_data['function']}.validation_exception", tags={"user": self.user}
             )
             sentry_sdk.capture_exception()
-            self.write_error(400, message="Error validating input: " + str(e))
+            self.write_error(400, message=f"Error validating input: {str(e)}")
             return
 
         try:
@@ -639,7 +640,7 @@ class RoleCloneHandler(BaseAPIV2Handler):
                 },
             )
             sentry_sdk.capture_exception()
-            self.write_error(500, message="Exception occurred cloning role: " + str(e))
+            self.write_error(500, message=f"Exception occurred cloning role: {str(e)}")
             return
 
         # if here, role has been successfully cloned
@@ -697,10 +698,7 @@ class GetRolesMTLSHandler(BaseMtlsHandler):
         self.user: str = self.requester["email"]
 
         include_all_roles = self.get_arguments("all")
-        console_only = True
-        if include_all_roles == ["true"]:
-            console_only = False
-
+        console_only = include_all_roles != ["true"]
         log_data = {
             "function": f"{__name__}.{self.__class__.__name__}.{sys._getframe().f_code.co_name}",
             "user": self.user,

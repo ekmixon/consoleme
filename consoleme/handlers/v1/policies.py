@@ -30,20 +30,23 @@ class AutocompleteHandler(BaseAPIV1Handler):
                     description: Returns a list of the matching permissions.
         """
 
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
-
-        only_filter_services = False
-
         if (
-            self.request.arguments.get("only_filter_services")
-            and self.request.arguments.get("only_filter_services")[0].decode("utf-8")
-            == "true"
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
         ):
-            only_filter_services = True
+            raise MustBeFte("Only FTEs are authorized to view this page.")
+
+        only_filter_services = bool(
+            (
+                self.request.arguments.get("only_filter_services")
+                and self.request.arguments.get("only_filter_services")[0].decode(
+                    "utf-8"
+                )
+                == "true"
+            )
+        )
 
         prefix = self.request.arguments.get("prefix")[0].decode("utf-8") + "*"
         results = _expand_wildcard_action(prefix)
@@ -59,21 +62,20 @@ class AutocompleteHandler(BaseAPIV1Handler):
 
 
 async def filter_resources(filter, resources, max=20):
-    if filter:
-        regexp = re.compile(r"{}".format(filter.strip()), re.IGNORECASE)
-        results: List[str] = []
-        for resource in resources:
-            try:
-                if regexp.search(str(resource.get(filter))):
-                    if len(results) == max:
-                        return results
-                    results.append(resource)
-            except re.error:
-                # Regex error. Return no results
-                pass
-        return results
-    else:
+    if not filter:
         return resources
+    regexp = re.compile(f"{filter.strip()}", re.IGNORECASE)
+    results: List[str] = []
+    for resource in resources:
+        try:
+            if regexp.search(str(resource.get(filter))):
+                if len(results) == max:
+                    return results
+                results.append(resource)
+        except re.error:
+            # Regex error. Return no results
+            pass
+    return results
 
 
 async def handle_resource_type_ahead_request(cls):

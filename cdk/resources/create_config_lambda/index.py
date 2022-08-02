@@ -4,14 +4,14 @@ import boto3
 import cfnresponse
 import yaml
 
-spoke_accounts_objects_dict = {}
-spoke_accounts_objects_dict[os.getenv("ACCOUNT_NUMBER")] = [
-    "account_" + os.getenv("ACCOUNT_NUMBER")
-]
+spoke_accounts_objects_dict = {
+    os.getenv("ACCOUNT_NUMBER"): ["account_" + os.getenv("ACCOUNT_NUMBER")]
+}
+
 spoke_accounts_list = os.getenv("SPOKE_ACCOUNTS").split(",")
 
 for account_id in spoke_accounts_list:
-    spoke_accounts_objects_dict[str(account_id)] = ["account_" + account_id]
+    spoke_accounts_objects_dict[str(account_id)] = [f"account_{account_id}"]
 
 spoke_accounts_objects_list_yaml = yaml.dump(
     {"account_ids_to_name": spoke_accounts_objects_dict},
@@ -33,7 +33,7 @@ def handler(event, context):
     if request_type == "Delete":
         return on_delete(event, context)
 
-    raise Exception("Invalid request type: %s" % request_type)
+    raise Exception(f"Invalid request type: {request_type}")
 
 
 def on_create(event, context):

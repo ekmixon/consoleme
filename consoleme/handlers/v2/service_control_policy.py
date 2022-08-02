@@ -19,11 +19,13 @@ class ServiceControlPolicyHandler(BaseAPIV2Handler):
     allowed_methods = ["GET"]
 
     async def get(self, identifier):
-        if config.get("policy_editor.disallow_contractors", True) and self.contractor:
-            if self.user not in config.get(
-                "groups.can_bypass_contractor_restrictions", []
-            ):
-                raise MustBeFte("Only FTEs are authorized to view this page.")
+        if (
+            config.get("policy_editor.disallow_contractors", True)
+            and self.contractor
+            and self.user
+            not in config.get("groups.can_bypass_contractor_restrictions", [])
+        ):
+            raise MustBeFte("Only FTEs are authorized to view this page.")
 
         log_data = {
             "function": "ServiceControlPolicyHandler.get",

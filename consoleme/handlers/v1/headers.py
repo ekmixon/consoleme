@@ -31,14 +31,13 @@ class HeaderHandler(BaseHandler):
         log.debug(log_data)
         stats.count("myheaders.get", tags={"user": self.user})
 
-        response_html = []
+        response_html = [
+            f"<p><strong>{xhtml_escape(k)}</strong>: {xhtml_escape(v)}</p>"
+            for k, v in dict(self.request.headers).items()
+            if k.lower()
+            not in map(str.lower, config.get("headers.sensitive_headers", []))
+        ]
 
-        for k, v in dict(self.request.headers).items():
-            if k.lower() in map(str.lower, config.get("headers.sensitive_headers", [])):
-                continue
-            response_html.append(
-                f"<p><strong>{xhtml_escape(k)}</strong>: {xhtml_escape(v)}</p>"
-            )
 
         self.write("{}".format("\n".join(response_html)))
 
@@ -61,10 +60,11 @@ class ApiHeaderHandler(BaseMtlsHandler):
         }
         log.debug(log_data)
         stats.count("apimyheaders.get")
-        response = {}
-        for k, v in dict(self.request.headers).items():
-            if k.lower() in map(str.lower, config.get("headers.sensitive_headers", [])):
-                continue
-            response[k] = v
+        response = {
+            k: v
+            for k, v in dict(self.request.headers).items()
+            if k.lower()
+            not in map(str.lower, config.get("headers.sensitive_headers", []))
+        }
 
         self.write(response)
