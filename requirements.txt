@@ -216,7 +216,7 @@ lazy-object-proxy==1.6.0
     # via astroid
 logmatic-python==0.1.7
     # via -r requirements.in
-lxml==4.6.3
+lxml==4.9.1
     # via
     #   -r requirements.in
     #   python3-saml
@@ -288,7 +288,7 @@ prompt-toolkit==3.0.20
     #   click-repl
     #   ipython
     #   questionary
-protobuf==3.17.3
+protobuf==3.18.3
     # via
     #   google-api-core
     #   googleapis-common-protos
