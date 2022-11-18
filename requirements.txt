@@ -288,7 +288,7 @@ prompt-toolkit==3.0.20
     #   click-repl
     #   ipython
     #   questionary
-protobuf==3.17.3
+protobuf==3.18.3
     # via
     #   google-api-core
     #   googleapis-common-protos
@@ -484,3 +484,4 @@ yarl==1.6.3
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
