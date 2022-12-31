@@ -128,7 +128,7 @@ genson==1.2.2
     # via datamodel-code-generator
 gitdb==4.0.7
     # via gitpython
-gitpython==3.1.18
+gitpython==3.1.30
     # via -r requirements.in
 google-api-core==2.0.1
     # via
