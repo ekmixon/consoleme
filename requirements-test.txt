@@ -368,7 +368,7 @@ inflection==0.5.1
     #   cloudaux
 iniconfig==1.1.1
     # via pytest
-ipython==7.27.0
+ipython==8.10.0
     # via
     #   -c requirements.txt
     #   -r requirements.txt
