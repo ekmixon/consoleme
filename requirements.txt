@@ -176,7 +176,7 @@ inflect==5.3.0
     # via datamodel-code-generator
 inflection==0.5.1
     # via cloudaux
-ipython==7.27.0
+ipython==8.10.0
     # via -r requirements.in
 isodate==0.6.0
     # via
