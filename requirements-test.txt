@@ -989,7 +989,7 @@ webencodings==0.5.1
     #   bleach
 websocket-client==1.2.1
     # via docker
-werkzeug==2.0.1
+werkzeug==2.2.3
     # via moto
 wrapt==1.12.1
     # via
