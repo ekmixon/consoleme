@@ -183,7 +183,7 @@ coverage==5.5
     # via
     #   -r requirements-test.in
     #   pytest-cov
-cryptography==3.4.8
+cryptography==39.0.1
     # via
     #   -c requirements.txt
     #   -r requirements.txt
@@ -488,7 +488,7 @@ mypy-extensions==0.4.3
     #   mypy
 nodeenv==1.6.0
     # via pre-commit
-numpy==1.19.5
+numpy==1.22.2
     # via
     #   -c requirements.txt
     #   -r requirements.txt
