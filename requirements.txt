@@ -89,7 +89,7 @@ cloudaux==1.9.6
     # via -r requirements.in
 contextlib2==21.6.0
     # via schema
-cryptography==3.4.8
+cryptography==39.0.1
     # via -r requirements.in
 datamodel-code-generator==0.11.12
     # via -r requirements.in
@@ -235,7 +235,7 @@ multidict==5.1.0
     #   yarl
 mypy-extensions==0.4.3
     # via black
-numpy==1.19.5
+numpy==1.22.2
     # via
     #   -r requirements.in
     #   pandas
