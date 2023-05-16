@@ -48,7 +48,7 @@ pygments==2.10.0
     #   -c requirements-test.txt
     #   -c requirements.txt
     #   mkdocs-material
-pymdown-extensions==8.2
+pymdown-extensions==10.0
     # via mkdocs-material
 pyparsing==2.4.7
     # via
