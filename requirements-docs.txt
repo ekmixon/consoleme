@@ -43,7 +43,7 @@ packaging==21.0
     #   -c requirements-test.txt
     #   -c requirements.txt
     #   mkdocs
-pygments==2.10.0
+pygments==2.15.0
     # via
     #   -c requirements-test.txt
     #   -c requirements.txt
