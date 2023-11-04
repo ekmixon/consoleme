@@ -918,7 +918,7 @@ tomli==1.2.1
     #   -c requirements.txt
     #   -r requirements.txt
     #   black
-tornado==6.1
+tornado==6.3.3
     # via
     #   -c requirements.txt
     #   -r requirements-test.in
@@ -989,7 +989,7 @@ webencodings==0.5.1
     #   bleach
 websocket-client==1.2.1
     # via docker
-werkzeug==2.0.1
+werkzeug==3.0.1
     # via moto
 wrapt==1.12.1
     # via
