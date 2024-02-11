@@ -106,7 +106,7 @@ defusedxml==0.7.1
     #   cloudaux
 deprecated==1.2.13
     # via atlassian-python-api
-dnspython==2.1.0
+dnspython==2.6.0rc1
     # via email-validator
 ecdsa==0.17.0
     # via python-jose
