@@ -214,7 +214,7 @@ deprecated==1.2.13
     #   atlassian-python-api
 distlib==0.3.2
     # via virtualenv
-dnspython==2.1.0
+dnspython==2.6.0rc1
     # via
     #   -c requirements.txt
     #   -r requirements.txt
