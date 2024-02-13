@@ -57,7 +57,7 @@ backcall==0.2.0
     #   ipython
 backports.entry-points-selectable==1.1.0
     # via virtualenv
-bandit==1.7.0
+bandit==1.7.7
     # via -r requirements-test.in
 bcrypt==3.2.0
     # via
