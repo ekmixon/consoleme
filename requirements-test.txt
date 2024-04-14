@@ -349,7 +349,7 @@ httplib2==0.19.1
     #   google-auth-httplib2
 identify==2.2.14
     # via pre-commit
-idna==2.10
+idna==3.7
     # via
     #   -c requirements.txt
     #   -r requirements.txt
