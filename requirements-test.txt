@@ -333,7 +333,7 @@ googleapis-common-protos==1.53.0
     #   -c requirements.txt
     #   -r requirements.txt
     #   google-api-core
-gunicorn==20.1.0
+gunicorn==22.0.0
     # via
     #   -c requirements.txt
     #   -r requirements.txt
