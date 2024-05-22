@@ -364,7 +364,7 @@ regex==2021.8.28
     # via
     #   black
     #   datamodel-code-generator
-requests==2.26.0
+requests==2.32.0
     # via
     #   -r requirements.in
     #   atlassian-python-api
