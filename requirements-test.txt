@@ -784,7 +784,7 @@ regex==2021.8.28
     #   -r requirements.txt
     #   black
     #   datamodel-code-generator
-requests==2.26.0
+requests==2.32.0
     # via
     #   -c requirements.txt
     #   -r requirements.txt
