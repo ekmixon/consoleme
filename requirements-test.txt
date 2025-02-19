@@ -731,7 +731,7 @@ python-dateutil==2.8.2
     #   elasticsearch-dsl
     #   moto
     #   pandas
-python-jose==3.3.0
+python-jose==3.4.0
     # via
     #   -c requirements.txt
     #   -r requirements.txt
