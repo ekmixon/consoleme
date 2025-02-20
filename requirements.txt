@@ -333,7 +333,7 @@ python-dateutil==2.8.2
     #   botocore
     #   elasticsearch-dsl
     #   pandas
-python-jose==3.3.0
+python-jose==3.4.0
     # via okta-jwt
 python-json-logger==0.1.11
     # via
